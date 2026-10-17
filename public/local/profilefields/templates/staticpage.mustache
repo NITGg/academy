@@ -32,7 +32,7 @@
     * title - the page's name, in the display language
     * content - the body, as HTML, already formatted
     * hascontent - whether content is worth drawing
-    * iscontact - draw the contact block and the map
+    * iscontact - draw the Contact banner, form, map and details instead (contact_hero, contact_main)
     * isfaq - draw the question list
     * isabout - draw the About hero and sections (about_hero, about_sections) instead
     * about - the About page's extras, see classes/about.php (about::view())
@@ -63,13 +63,16 @@
         "faq": []
     }
 }}
-<div class="nit-staticpage{{#isabout}} nit-staticpage--about{{/isabout}}" data-page="{{slug}}">
+<div class="nit-staticpage{{#isabout}} nit-staticpage--about{{/isabout}}{{#iscontact}} nit-staticpage--contact{{/iscontact}}" data-page="{{slug}}">
     {{#isabout}}
         {{#about}}
             {{> local_profilefields/about_hero }}
         {{/about}}
     {{/isabout}}
-    {{^isabout}}
+    {{#iscontact}}
+        {{> local_profilefields/contact_hero }}
+    {{/iscontact}}
+    {{^isabout}}{{^iscontact}}
         <header class="nit-staticpage-head">
             <div class="nit-staticpage-inner">
                 <h1 class="nit-staticpage-title">{{title}}</h1>
@@ -80,7 +83,7 @@
                 {{/policyname}}
             </div>
         </header>
-    {{/isabout}}
+    {{/iscontact}}{{/isabout}}
 
     <div class="nit-staticpage-inner">
         {{#canedit}}
@@ -115,50 +118,7 @@
         {{/hascontent}}
 
         {{#iscontact}}
-            {{#hascontact}}
-                <div class="nit-staticpage-contact">
-                    <div class="nit-staticpage-details">
-                        <h2 class="nit-staticpage-subtitle">{{#str}}contactdetails, local_profilefields{{/str}}</h2>
-                        <ul class="nit-contact-list">
-                            {{#contact}}
-                                <li class="nit-contact-row">
-                                    <i class="{{icon}} nit-contact-icon" aria-hidden="true"></i>
-                                    {{#url}}<a href="{{url}}" class="nit-link-plain">{{text}}</a>{{/url}}
-                                    {{^url}}<span>{{text}}</span>{{/url}}
-                                </li>
-                            {{/contact}}
-                        </ul>
-
-                        {{#social.0}}
-                            <h2 class="nit-staticpage-subtitle">{{#str}}followus, local_profilefields{{/str}}</h2>
-                            <ul class="nit-social-list">
-                                {{#social}}
-                                    <li>
-                                        <a href="{{url}}" class="nit-social-link nit-link-plain"
-                                           target="_blank" rel="noopener" aria-label="{{name}}" title="{{name}}">
-                                            <i class="{{icon}}" aria-hidden="true"></i>
-                                        </a>
-                                    </li>
-                                {{/social}}
-                            </ul>
-                        {{/social.0}}
-                    </div>
-
-                    {{#mapembed}}
-                        <div class="nit-staticpage-map">
-                            <iframe src="{{mapembed}}" title="{{#str}}findus, local_profilefields{{/str}}"
-                                    loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-                                    allowfullscreen></iframe>
-                            {{#maplink}}
-                                <a href="{{maplink}}" class="nit-staticpage-maplink"
-                                   target="_blank" rel="noopener">
-                                    {{#str}}openinmaps, local_profilefields{{/str}}
-                                </a>
-                            {{/maplink}}
-                        </div>
-                    {{/mapembed}}
-                </div>
-            {{/hascontact}}
+            {{> local_profilefields/contact_main }}
         {{/iscontact}}
 
         {{#isfaq}}

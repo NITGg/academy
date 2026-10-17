@@ -530,8 +530,8 @@ $string['staticpagepolicy'] = 'Document to show in {$a}';
 $string['staticpagepolicynone'] = 'None - use the text typed below';
 $string['staticpagepolicyempty'] = 'No policy documents have been written yet. Add them under Site administration > Users > Privacy and policies > Manage policies, then come back and choose one for each language. Until then this page shows the text typed below.';
 
-$string['staticpagecontactsection'] = 'Map';
-$string['staticpagecontactnote'] = 'The address, phone number, opening hours, email address and social media links on this page are the ones already set on the <a href="{$a}">Footer tab</a> - they are edited in one place and shown in both. Only the map is set here.';
+$string['staticpagecontactsection'] = 'Banner, message form and map';
+$string['staticpagecontactnote'] = 'The address, phone number, opening hours, email address and social media links on this page are the ones already set on the <a href="{$a}">Footer tab</a> - they are edited in one place and shown in both. The banner picture, the message form and the map are set here.';
 $string['staticpagemapembed'] = 'Map embed URL';
 $string['staticpagemapembed_help'] = 'In Google Maps, open Share > Embed a map and copy the address inside the src="..." of the code it gives you - not the whole tag. Leave empty for no map.';
 $string['staticpagemapembediframe'] = 'Paste only the address inside src="...", not the whole <iframe> tag.';
@@ -602,3 +602,34 @@ $string['faqdelete_label'] = 'Delete this question when I save';
 $string['faqaddmore'] = 'Add {no} more questions';
 $string['faqnoquestion'] = 'There is an answer here but no question. Type the question, or tick Delete.';
 $string['faqnone'] = 'No questions have been added yet.';
+
+// Contact page: banner and message form.
+$string['contactheroimage'] = 'Banner picture';
+$string['contactheroimage_help'] = 'The wide picture at the top of the Contact page, behind the page name. A landscape image of at least 1600 x 500 pixels works best. Leave empty for a plain band.';
+$string['contactformenabled'] = 'Message form';
+$string['contactformenabled_desc'] = 'Show the "send us a message" form on the Contact page';
+$string['contactrecipient'] = 'Send messages to';
+$string['contactrecipient_help'] = 'The email address that receives what visitors send from the form. Leave empty to use the email address on the Footer tab (or, without one, the site\'s support contact).';
+$string['contactformheading'] = 'Send us a message';
+$string['contactphname'] = 'Enter your name';
+$string['contactphemail'] = 'Enter your email';
+$string['contactphphone'] = 'Phone number';
+$string['contactphmessage'] = 'Message';
+$string['contactsend'] = 'Send';
+$string['contactsent'] = 'Thank you - your message has been sent. We will get back to you soon.';
+$string['contacterrname'] = 'Please enter your name.';
+$string['contacterremail'] = 'Please enter a valid email address.';
+$string['contacterrmessage'] = 'Please write your message.';
+$string['contacterrlong'] = 'The message is too long - at most {$a} characters.';
+$string['contacterrwait'] = 'You have just sent a message. Please wait a minute before sending another.';
+$string['contacterrsend'] = 'Your message could not be sent. Please try again later.';
+$string['contactaddress'] = 'Address:';
+$string['followuson'] = 'Follow us on';
+$string['contactmailsubject'] = '{$a->site}: new message from {$a->name}';
+$string['contactmailbody'] = 'A visitor sent a message from the Contact page.
+
+Name: {$a->name}
+Email: {$a->email}
+Phone: {$a->phone}
+
+{$a->message}';

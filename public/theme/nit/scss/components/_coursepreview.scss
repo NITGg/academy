@@ -52,6 +52,10 @@
     font-weight: 600;
     text-align: center;
 
+    .lp-preview-text {
+        font-size: 18px;
+    }
+
     .lp-preview-text::before {
         content: "🔒";
         margin-inline-end: 8px;
@@ -59,11 +63,17 @@
 
     .lp-preview-cta {
         flex: 0 0 auto;
+        font-size: 14px;
+        font-weight: 600;
     }
 
     @media (max-width: 575px) {
         padding: 10px 16px 12px;
         font-size: 0.9rem;
+
+        .lp-preview-text {
+            font-size: 15px;
+        }
     }
 }
 
@@ -175,8 +185,8 @@ body:has(.acad-cr) {
             // row gap), so the prompt lines up with the lesson name.
             margin-inline-start: 44px;
             color: var(--cr-muted);
-            font-size: 13px;
-            font-weight: 400;
+            font-size: 12px;
+            font-weight: 500;
             line-height: 1.45;
         }
     }

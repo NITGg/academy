@@ -294,6 +294,7 @@ function local_profilefields_pluginfile($course, $cm, $context, $filearea, $args
         \local_profilefields\staticpages::FILEAREA,
         \local_profilefields\about::HERO_FILEAREA,
         \local_profilefields\about::VIDEO_FILEAREA,
+        \local_profilefields\contactform::HERO_FILEAREA,
     ];
     if ($context->contextlevel !== CONTEXT_SYSTEM || !in_array($filearea, $areas, true)) {
         return false;
@@ -308,7 +309,9 @@ function local_profilefields_pluginfile($course, $cm, $context, $filearea, $args
     // The body's images are keyed by the row they were pasted into; the About
     // hero picture and film are one file each at item id 0 and belong to the
     // page, not to a language.
-    if ($filearea !== \local_profilefields\staticpages::FILEAREA) {
+    if ($filearea === \local_profilefields\contactform::HERO_FILEAREA) {
+        $slug = 'contact';
+    } else if ($filearea !== \local_profilefields\staticpages::FILEAREA) {
         $slug = \local_profilefields\about::SLUG;
     } else {
         $row = $DB->get_record(\local_profilefields\staticpages::TABLE, ['id' => $itemid], 'id, slug');

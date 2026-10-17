@@ -17,6 +17,7 @@
 namespace local_profilefields\form;
 
 use local_profilefields\about;
+use local_profilefields\contactform;
 use local_profilefields\staticpages;
 use moodle_url;
 use moodleform;
@@ -350,6 +351,19 @@ class staticpage_form extends \moodleform {
         $mform->addElement('static', 'contactnote', '',
             get_string('staticpagecontactnote', 'local_profilefields', $footerurl->out(false)));
 
+        $mform->addElement('filemanager', 'contacthero', get_string('contactheroimage', 'local_profilefields'),
+            null, contactform::hero_file_options());
+        $mform->addHelpButton('contacthero', 'contactheroimage', 'local_profilefields');
+
+        $mform->addElement('advcheckbox', 'contactformenabled', get_string('contactformenabled', 'local_profilefields'),
+            get_string('contactformenabled_desc', 'local_profilefields'));
+
+        $mform->addElement('text', 'contactrecipient', get_string('contactrecipient', 'local_profilefields'),
+            ['size' => 50, 'dir' => 'ltr']);
+        $mform->setType('contactrecipient', PARAM_RAW_TRIMMED);
+        $mform->addHelpButton('contactrecipient', 'contactrecipient', 'local_profilefields');
+        $mform->hideIf('contactrecipient', 'contactformenabled', 'notchecked');
+
         $mform->addElement('text', 'mapembed', get_string('staticpagemapembed', 'local_profilefields'),
             ['size' => 80, 'dir' => 'ltr', 'placeholder' => 'https://www.google.com/maps/embed?pb=...']);
         $mform->setType('mapembed', PARAM_RAW_TRIMMED);
@@ -387,6 +401,10 @@ class staticpage_form extends \moodleform {
 
         if (!empty($data['maplink']) && clean_param(trim((string) $data['maplink']), PARAM_URL) === '') {
             $errors['maplink'] = get_string('staticpagemaplinkinvalid', 'local_profilefields');
+        }
+
+        if (!empty($data['contactrecipient']) && !validate_email(trim((string) $data['contactrecipient']))) {
+            $errors['contactrecipient'] = get_string('invalidemail');
         }
 
         return $errors;
@@ -454,6 +472,13 @@ class staticpage_form extends \moodleform {
         if (staticpages::kind($slug) === staticpages::KIND_CONTACT) {
             $data->mapembed = staticpages::contact_setting('mapembed');
             $data->maplink = staticpages::contact_setting('maplink');
+            $data->contactformenabled = contactform::enabled() ? 1 : 0;
+            $data->contactrecipient = contactform::recipient_setting();
+
+            $draftid = 0;
+            file_prepare_draft_area($draftid, $context->id, staticpages::COMPONENT,
+                contactform::HERO_FILEAREA, 0, contactform::hero_file_options());
+            $data->contacthero = $draftid;
         }
 
         if ($slug === about::SLUG) {
@@ -502,6 +527,12 @@ class staticpage_form extends \moodleform {
         if (staticpages::kind($slug) === staticpages::KIND_CONTACT) {
             staticpages::set_contact_setting('mapembed', clean_param(trim((string) ($data->mapembed ?? '')), PARAM_URL));
             staticpages::set_contact_setting('maplink', clean_param(trim((string) ($data->maplink ?? '')), PARAM_URL));
+            staticpages::set_contact_setting('formenabled', !empty($data->contactformenabled) ? '1' : '0');
+            staticpages::set_contact_setting('recipient', clean_param(trim((string) ($data->contactrecipient ?? '')), PARAM_EMAIL));
+            if (isset($data->contacthero)) {
+                file_save_draft_area_files((int) $data->contacthero, $context->id, staticpages::COMPONENT,
+                    contactform::HERO_FILEAREA, 0, contactform::hero_file_options());
+            }
         }
 
         if ($slug === about::SLUG) {

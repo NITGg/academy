@@ -1,0 +1,143 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_profilefields/contact_main
+
+    The Contact page under its banner, laid out to the Figma: the message form
+    with the map beside it, then the contact details and the social links under
+    the form. Grid areas, not source order, place the three, so on a phone the
+    map can fall between the form and the details.
+
+    data-nitml="off" keeps local_nit_mlang from splitting the visitor's name into
+    one box per language: it claims any text input called "name" inside a form.
+
+    The details and social links are the footer's own (Footer tab); the map, the
+    picture and the form's recipient are set on the Contact tab.
+
+    Context variables required for this template:
+    * contactform - see \local_profilefields\contactform::handle()
+    * contact - [{key, icon, text, url, isaddress}]
+    * social - [{name, icon, url}]
+    * mapembed, maplink - may be empty
+
+    Example context (json):
+    {
+        "contactform": {
+            "enabled": true, "action": "#", "sesskey": "x", "formerror": "",
+            "fields": [{"name": "name", "type": "text", "istextarea": false, "value": "",
+                "placeholder": "Enter your name", "required": true, "autocomplete": "name",
+                "error": "", "haserror": false, "maxlength": 255}]
+        },
+        "contact": [{"key": "phone", "icon": "fa-solid fa-phone", "text": "+20 100", "url": "tel:+20100",
+            "isaddress": false}],
+        "social": [{"name": "Instagram", "icon": "fa-brands fa-instagram", "url": "#"}],
+        "mapembed": "",
+        "maplink": ""
+    }
+}}
+<div class="nit-contact{{^mapembed}} nit-contact--nomap{{/mapembed}}">
+    {{#contactform}}
+        {{#enabled}}
+            <section class="nit-contact-form" aria-labelledby="nit-contact-form-h">
+                <h2 class="nit-contact-heading" id="nit-contact-form-h">{{#str}}contactformheading, local_profilefields{{/str}}</h2>
+                {{#formerror}}
+                    <div class="alert alert-danger" role="alert">{{formerror}}</div>
+                {{/formerror}}
+                <form method="post" action="{{action}}" novalidate>
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="nitcontact" value="1">
+                    <div class="nit-contact-trap" aria-hidden="true">
+                        <input type="text" name="website" tabindex="-1" autocomplete="off">
+                    </div>
+                    {{#fields}}
+                        <div class="nit-contact-field">
+                            <label class="visually-hidden" for="nit-contact-{{name}}">{{placeholder}}</label>
+                            {{#istextarea}}
+                                <textarea id="nit-contact-{{name}}" name="{{name}}" rows="6" maxlength="{{maxlength}}"
+                                          class="nit-contact-input{{#haserror}} is-invalid{{/haserror}}"
+                                          placeholder="{{placeholder}}"{{#required}} required{{/required}}
+                                          {{#haserror}}aria-invalid="true" aria-describedby="nit-contact-{{name}}-err"{{/haserror}}>{{value}}</textarea>
+                            {{/istextarea}}
+                            {{^istextarea}}
+                                <input id="nit-contact-{{name}}" name="{{name}}" type="{{type}}" value="{{value}}"
+                                       maxlength="{{maxlength}}" autocomplete="{{autocomplete}}" data-nitml="off"
+                                       class="nit-contact-input{{#haserror}} is-invalid{{/haserror}}"
+                                       placeholder="{{placeholder}}"{{#required}} required{{/required}}
+                                       {{#haserror}}aria-invalid="true" aria-describedby="nit-contact-{{name}}-err"{{/haserror}}>
+                            {{/istextarea}}
+                            {{#haserror}}
+                                <div class="nit-contact-error" id="nit-contact-{{name}}-err">{{error}}</div>
+                            {{/haserror}}
+                        </div>
+                    {{/fields}}
+                    <button type="submit" class="btn btn-primary nit-contact-submit">
+                        {{#str}}contactsend, local_profilefields{{/str}}
+                    </button>
+                </form>
+            </section>
+        {{/enabled}}
+    {{/contactform}}
+
+    {{#mapembed}}
+        <div class="nit-contact-map">
+            <iframe src="{{mapembed}}" title="{{#str}}findus, local_profilefields{{/str}}"
+                    loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+            {{#maplink}}
+                <a href="{{maplink}}" class="nit-contact-maplink" target="_blank" rel="noopener">
+                    <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i>
+                    {{#str}}openinmaps, local_profilefields{{/str}}
+                </a>
+            {{/maplink}}
+        </div>
+    {{/mapembed}}
+
+    <div class="nit-contact-info">
+        {{#contact.0}}
+            <section class="nit-contact-details">
+                <h2 class="nit-contact-heading">{{#str}}contactdetails, local_profilefields{{/str}}</h2>
+                <ul class="nit-contact-rows">
+                    {{#contact}}
+                        <li class="nit-contact-item">
+                            <i class="{{icon}} nit-contact-item-icon" aria-hidden="true"></i>
+                            <div>
+                                {{#isaddress}}<strong class="nit-contact-item-label">{{#str}}contactaddress, local_profilefields{{/str}}</strong>{{/isaddress}}
+                                {{#url}}<a href="{{url}}" class="nit-link-plain" dir="auto">{{text}}</a>{{/url}}
+                                {{^url}}<span dir="auto">{{text}}</span>{{/url}}
+                            </div>
+                        </li>
+                    {{/contact}}
+                </ul>
+            </section>
+        {{/contact.0}}
+
+        {{#social.0}}
+            <section class="nit-contact-follow">
+                <h2 class="nit-contact-heading">{{#str}}followuson, local_profilefields{{/str}}</h2>
+                <ul class="nit-contact-social">
+                    {{#social}}
+                        <li>
+                            <a href="{{url}}" class="nit-contact-social-link" target="_blank" rel="noopener"
+                               aria-label="{{name}}" title="{{name}}">
+                                <i class="{{icon}}" aria-hidden="true"></i>
+                            </a>
+                        </li>
+                    {{/social}}
+                </ul>
+            </section>
+        {{/social.0}}
+    </div>
+</div>

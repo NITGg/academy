@@ -940,3 +940,318 @@ body.dir-rtl .nit-staticpage.nit-staticpage--about {
         }
     }
 }
+
+// -----------------------------------------------------------------------------
+// The Contact page, to the Figma (local_profilefields/contact_hero and
+// contact_main): a picture banner with the breadcrumb and the page name, then the
+// message form beside the map, then the contact details and social links under
+// the form. Wider than the reading column, because this page is a layout, not
+// prose. Every colour is a Brand Colors role except the banner's text, which sits
+// on a photograph under a dark shade and is white whatever the palette says.
+// -----------------------------------------------------------------------------
+
+.nit-staticpage.nit-staticpage--contact {
+    // The shade over the banner picture. A custom property so scssphp keeps the
+    // rgba() as written and the Arabic build does not drop it (rtlcss cannot
+    // parse modern rgb()); vertical, so it needs no mirroring.
+    --nit-contact-shade: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.2) 45%, rgba(0, 0, 0, 0.6) 100%);
+
+    .nit-staticpage-inner {
+        max-width: 1200px;
+        padding-inline: clamp(1rem, 4vw, 2rem);
+    }
+
+    .nit-staticpage-adminbar {
+        margin-top: 1.25rem;
+        margin-bottom: 0;
+    }
+
+    .nit-staticpage-body {
+        margin-top: clamp(1.5rem, 4vw, 2.5rem);
+    }
+
+    // ---- Banner -------------------------------------------------------------
+    .nit-contact-hero {
+        position: relative;
+        display: flex;
+        min-height: clamp(220px, 30vw, 340px);
+        overflow: hidden;
+        background: var(--nit-brand-surface);
+        border-bottom: 1px solid var(--nit-brand-borderprimary);
+        color: var(--nit-brand-textprimary);
+    }
+
+    .nit-contact-hero-img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .nit-contact-hero--image {
+        border-bottom: 0;
+        color: #fff;
+
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: var(--nit-contact-shade);
+        }
+    }
+
+    .nit-contact-hero-inner {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 2rem;
+        width: 100%;
+        max-width: 1200px;
+        margin-inline: auto;
+        padding: clamp(1.25rem, 3vw, 2rem) clamp(1rem, 4vw, 2rem) clamp(1.75rem, 5vw, 3.5rem);
+    }
+
+    .nit-contact-crumbs {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.95rem;
+
+        a {
+            color: inherit;
+            opacity: 0.75;
+            text-decoration: none;
+
+            &:hover,
+            &:focus {
+                opacity: 1;
+                text-decoration: underline;
+            }
+        }
+    }
+
+    // The chevron points forward along the reading direction; rtlcss does not
+    // flip a transform, so the Arabic page turns it round below.
+    .nit-contact-crumb-sep {
+        font-size: 0.7rem;
+        opacity: 0.75;
+    }
+
+    .nit-contact-hero-title {
+        margin: 0;
+        font-size: clamp(2rem, 4.5vw, 3rem);
+        font-weight: 700;
+        line-height: 1.2;
+        color: inherit;
+    }
+
+    // ---- Form, map, details ---------------------------------------------------
+    .nit-contact {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "form" "map" "info";
+        gap: clamp(2rem, 5vw, 3rem);
+        padding-block: clamp(2rem, 6vw, 4.5rem);
+
+        @include media-breakpoint-up(lg) {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            grid-template-areas: "form map" "info .";
+            column-gap: clamp(3rem, 6vw, 6rem);
+            row-gap: 3.5rem;
+        }
+
+        &.nit-contact--nomap {
+            grid-template-areas: "form" "info";
+
+            @include media-breakpoint-up(lg) {
+                grid-template-areas: "form ." "info .";
+            }
+        }
+    }
+
+    .nit-contact-form {
+        grid-area: form;
+        position: relative;
+    }
+
+    .nit-contact-map {
+        grid-area: map;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+
+        iframe {
+            display: block;
+            flex: 1 1 auto;
+            width: 100%;
+            min-height: 340px;
+            border: 1px solid var(--nit-brand-borderprimary);
+            border-radius: 8px;
+        }
+    }
+
+    .nit-contact-maplink {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        align-self: flex-start;
+        font-weight: 600;
+        color: var(--nit-brand-primary);
+    }
+
+    .nit-contact-info {
+        grid-area: info;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2rem;
+
+        @include media-breakpoint-up(sm) {
+            grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+        }
+    }
+
+    .nit-contact-heading {
+        margin: 0 0 1.75rem;
+        font-size: clamp(1.5rem, 2.6vw, 2rem);
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--nit-brand-primary);
+    }
+
+    .nit-contact-info .nit-contact-heading {
+        margin-bottom: 1.5rem;
+        font-size: clamp(1.25rem, 2vw, 1.5rem);
+    }
+
+    // ---- Form boxes ---------------------------------------------------------
+    // The honeypot: off-screen for people, a box like any other for a bot.
+    .nit-contact-trap {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+
+    .nit-contact-field {
+        margin-bottom: 1.5rem;
+    }
+
+    .nit-contact-input {
+        display: block;
+        width: 100%;
+        min-height: 3.25rem;
+        padding: 0.8rem 1rem;
+        border: 1px solid var(--nit-brand-borderprimary);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--nit-brand-textprimary);
+        font: inherit;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+        &::placeholder {
+            color: var(--nit-brand-textsecondary);
+            opacity: 1;
+        }
+
+        &:focus {
+            outline: none;
+            border-color: var(--nit-brand-primary);
+            box-shadow: 0 0 0 1px var(--nit-brand-primary);
+        }
+
+        &.is-invalid {
+            border-color: var(--nit-brand-error);
+        }
+    }
+
+    textarea.nit-contact-input {
+        min-height: 9.5rem;
+        resize: vertical;
+    }
+
+    .nit-contact-error {
+        margin-top: 0.4rem;
+        font-size: 0.875rem;
+        color: var(--nit-brand-error);
+    }
+
+    .nit-contact-submit {
+        min-width: 10rem;
+        padding-block: 0.55rem;
+        font-weight: 600;
+    }
+
+    // ---- Details and social links ----------------------------------------------
+    .nit-contact-rows {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .nit-contact-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        line-height: 1.75;
+        font-size: 1.0625rem;
+
+        + .nit-contact-item {
+            margin-top: 1.1rem;
+        }
+
+        a {
+            color: inherit;
+        }
+    }
+
+    .nit-contact-item-icon {
+        flex: 0 0 1.25rem;
+        margin-top: 0.4rem;
+        text-align: center;
+        color: var(--nit-brand-primary);
+    }
+
+    .nit-contact-item-label {
+        display: block;
+        font-weight: 700;
+    }
+
+    .nit-contact-social {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .nit-contact-social-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 50%;
+        border: 1px solid var(--nit-brand-primary);
+        color: var(--nit-brand-primary);
+        text-decoration: none;
+        transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+        &:hover,
+        &:focus {
+            background: var(--nit-brand-hoverbackground);
+            border-color: var(--nit-brand-hoverbackground);
+            color: var(--nit-brand-hovertext);
+            text-decoration: none;
+        }
+    }
+}
+
+body.dir-rtl .nit-staticpage.nit-staticpage--contact .nit-contact-crumb-sep {
+    transform: scaleX(-1);
+}

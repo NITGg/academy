@@ -821,7 +821,7 @@ body:has(.acad-cr) .acad-cr__req-list li {
     position: relative;
     padding-inline-start: 18px;
     margin-block-end: 10px;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.5;
     color: var(--cr-ink-2);
 }
@@ -868,14 +868,14 @@ body:has(.acad-cr) .acad-cr__mod.is-open .acad-cr__mod-head {
 }
 body:has(.acad-cr) .acad-cr__mod-title {
     grid-area: title;
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 500;
     line-height: 1.35;
     color: var(--cr-ink);
 }
 body:has(.acad-cr) .acad-cr__mod-meta {
     grid-area: meta;
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--cr-muted);
 }
@@ -885,7 +885,7 @@ body:has(.acad-cr) .acad-cr__mod-toggle {
     align-items: center;
     gap: 12px;
     padding-inline: 8px;
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--cr-ink);
     white-space: nowrap;
@@ -905,8 +905,8 @@ body:has(.acad-cr) .acad-cr__mod-desc {
     line-height: 1.6;
     color: var(--cr-ink-2);
 }
-body:has(.acad-cr) .acad-cr__included-h { margin: 0 0 8px; font-size: 15px; font-weight: 700; color: var(--cr-ink); }
-body:has(.acad-cr) .acad-cr__included-sum { margin-block-end: 14px; font-size: 14px; color: var(--cr-ink-2); }
+body:has(.acad-cr) .acad-cr__included-h { margin: 0 0 8px; font-size: 16px; font-weight: 500; color: var(--cr-ink); }
+body:has(.acad-cr) .acad-cr__included-sum { margin-block-end: 14px; font-size: 14px; font-weight: 500; color: var(--cr-ink-2); }
 body:has(.acad-cr) .acad-cr__included-sum b { font-weight: 700; color: var(--cr-ink); }
 
 /* Activity rows */
@@ -916,7 +916,7 @@ body:has(.acad-cr) .acad-cr__act {
     gap: 12px;
     padding: 11px 0;
     border-block-start: 1px solid var(--cr-hairline);
-    font-size: 15px;
+    font-size: 14px;
 }
 body:has(.acad-cr) .acad-cr__act-ico { width: 22px; height: 22px; flex-shrink: 0; }
 /* Core's icon container (purpose-coloured glyph) as a small tinted tile. Core
@@ -937,21 +937,22 @@ body:has(.acad-cr) .acad-cr__act-icobox.activityiconcontainer .activityicon {
     max-width: 22px;
     max-height: 22px;
 }
-body:has(.acad-cr) .acad-cr__act-name { flex: 1; min-width: 0; color: var(--cr-ink); font-weight: 600; }
+body:has(.acad-cr) .acad-cr__act-name { flex: 1; min-width: 0; color: var(--cr-ink); font-weight: 500; }
 body:has(.acad-cr) .acad-cr__act-name a { color: var(--cr-ink); }
 body:has(.acad-cr) .acad-cr__act-name a:hover { color: var(--cr-link); }
-body:has(.acad-cr) .acad-cr__act-type { color: var(--cr-muted); white-space: nowrap; font-size: 13px; }
+body:has(.acad-cr) .acad-cr__act-type { color: var(--cr-muted); white-space: nowrap; font-size: 12px; font-weight: 500; }
 /* Playing time, for the rows that have one. Tabular figures so the colons line
    up down the list; LTR because a clock reading is not mirrored in Arabic. */
 body:has(.acad-cr) .acad-cr__act-dur {
     color: var(--cr-muted);
     white-space: nowrap;
-    font-size: 13px;
+    font-size: 12px;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
     direction: ltr;
     unicode-bidi: isolate;
 }
-body:has(.acad-cr) .acad-cr__act-locked { color: var(--cr-muted); font-size: 14px; padding: 8px 0; }
+body:has(.acad-cr) .acad-cr__act-locked { color: var(--cr-muted); font-size: 12px; font-weight: 500; padding: 8px 0; }
 
 /* ---- Keyboard focus (quality floor) ------------------------------------- */
 body:has(.acad-cr) .acad-cr :is(a, button):focus-visible {
@@ -990,8 +991,8 @@ body:has(.acad-cr) .acad-cr :is(a, button):focus-visible {
     body:has(.acad-cr) .acad-cr__glance-v { font-size: 18px; }
     body:has(.acad-cr) .acad-cr__req-grid { grid-template-columns: 1fr; }
     body:has(.acad-cr) .acad-cr__mod-head { padding: 14px 8px 18px; }
-    body:has(.acad-cr) .acad-cr__mod-title { font-size: 18px; }
+    body:has(.acad-cr) .acad-cr__mod-title { font-size: 16px; }
     body:has(.acad-cr) .acad-cr__mod-meta,
-    body:has(.acad-cr) .acad-cr__mod-toggle { font-size: 15px; }
+    body:has(.acad-cr) .acad-cr__mod-toggle { font-size: 13px; }
     body:has(.acad-cr) .acad-cr__mod-body { padding: 0 8px 16px; }
 }

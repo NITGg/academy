@@ -79,6 +79,18 @@ $view['published'] = staticpages::enabled($slug);
 $view['iscontact'] = $view['kind'] === staticpages::KIND_CONTACT;
 $view['isfaq'] = $view['kind'] === staticpages::KIND_FAQ;
 
+// The Contact page: its banner and the message form. handle() sends a good
+// message and redirects, so it has to run before any output.
+if ($view['iscontact']) {
+    $view['contactform'] = \local_profilefields\contactform::handle($url);
+    $view['heroimage'] = \local_profilefields\contactform::hero_image_url();
+    $view['homeurl'] = (new moodle_url('/'))->out(false);
+    // The address is the one row that reads better with its name in front of it.
+    foreach ($view['contact'] as $i => $row) {
+        $view['contact'][$i]['isaddress'] = $row['key'] === 'address';
+    }
+}
+
 // The About page: the hero and its lists, plus the two doors it opens at the
 // bottom. Every "has" flag is decided here so the template only draws.
 $view['isabout'] = $view['about'] !== null;

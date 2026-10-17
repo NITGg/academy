@@ -28,6 +28,10 @@ body:has(.acad-cr) .acad-cr__tutor:last-child { border-block-end: none; }
 // inside the same band as the name.
 body:has(.acad-cr) .acad-cr__tutor .acad-cr__glance-row { border-block-end: none; }
 body:has(.acad-cr) .acad-cr__tutor--rich .acad-cr__glance-row { padding-block-end: 10px; }
+// The design sets the instructor row a size down from the facts above it:
+// "Instructor" 14 over a 16 name (the facts are 18 over 22).
+body:has(.acad-cr) .acad-cr__tutor .acad-cr__glance-k { font-size: 14px; }
+body:has(.acad-cr) .acad-cr__tutor .acad-cr__glance-v { font-size: 16px; }
 
 /* Meta line under the name: specialization · years of experience. */
 body:has(.acad-cr) .acad-cr__tutor-meta {

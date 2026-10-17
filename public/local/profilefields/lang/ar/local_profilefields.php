@@ -523,8 +523,8 @@ $string['staticpagepolicy'] = 'الوثيقة المعروضة بـ{$a}';
 $string['staticpagepolicynone'] = 'بدون — استخدم النص المكتوب أدناه';
 $string['staticpagepolicyempty'] = 'لم تُكتب أي وثيقة سياسات بعد. أضفها من إدارة الموقع ← المستخدمون ← الخصوصية والسياسات ← إدارة السياسات، ثم عد واختر وثيقة لكل لغة. حتى ذلك الحين تعرض هذه الصفحة النص المكتوب أدناه.';
 
-$string['staticpagecontactsection'] = 'الخريطة';
-$string['staticpagecontactnote'] = 'العنوان ورقم الهاتف وساعات العمل والبريد الإلكتروني وروابط التواصل الاجتماعي في هذه الصفحة هي نفسها المضبوطة في <a href="{$a}">تبويب التذييل</a> — تُحرَّر في مكان واحد وتظهر في الاثنين. الخريطة وحدها تُضبط من هنا.';
+$string['staticpagecontactsection'] = 'صورة الغلاف ونموذج المراسلة والخريطة';
+$string['staticpagecontactnote'] = 'العنوان ورقم الهاتف وساعات العمل والبريد الإلكتروني وروابط التواصل الاجتماعي في هذه الصفحة هي نفسها المضبوطة في <a href="{$a}">تبويب التذييل</a> — تُحرَّر في مكان واحد وتظهر في الاثنين. أما صورة الغلاف ونموذج المراسلة والخريطة فتُضبط من هنا.';
 $string['staticpagemapembed'] = 'رابط تضمين الخريطة';
 $string['staticpagemapembed_help'] = 'من خرائط جوجل، افتح مشاركة ← تضمين خريطة، وانسخ العنوان الموجود داخل ‎src="..."‎ من الكود المعروض — لا الوسم كاملًا. اتركه فارغًا لإخفاء الخريطة.';
 $string['staticpagemapembediframe'] = 'الصق العنوان الموجود داخل ‎src="..."‎ فقط، لا وسم ‎<iframe>‎ كاملًا.';
@@ -576,7 +576,7 @@ $string['aboutmilestonesheading'] = 'المحطات';
 $string['aboutctatitle'] = 'مستعد لبدء التعلّم؟';
 $string['aboutctatext'] = 'تصفّح الدورات، جرّب درسًا، والتحق حين تكون جاهزًا.';
 
-$string['contactdetails'] = 'بيانات الاتصال';
+$string['contactdetails'] = 'معلومات الاتصال';
 $string['followus'] = 'تابعنا';
 $string['findus'] = 'موقعنا';
 $string['openinmaps'] = 'افتح في الخرائط';
@@ -595,3 +595,34 @@ $string['faqdelete_label'] = 'احذف هذا السؤال عند الحفظ';
 $string['faqaddmore'] = 'أضف {no} أسئلة أخرى';
 $string['faqnoquestion'] = 'توجد إجابة هنا بلا سؤال. اكتب السؤال، أو ضع علامة على حذف.';
 $string['faqnone'] = 'لم تُضف أي أسئلة بعد.';
+
+// صفحة اتصل بنا: صورة الغلاف ونموذج المراسلة.
+$string['contactheroimage'] = 'صورة الغلاف';
+$string['contactheroimage_help'] = 'الصورة العريضة أعلى صفحة اتصل بنا خلف اسم الصفحة. يُفضَّل صورة أفقية لا تقل عن 1600 × 500 بكسل. اتركها فارغة لشريط بلون واحد.';
+$string['contactformenabled'] = 'نموذج المراسلة';
+$string['contactformenabled_desc'] = 'إظهار نموذج "أرسل لنا رسالة" في صفحة اتصل بنا';
+$string['contactrecipient'] = 'إرسال الرسائل إلى';
+$string['contactrecipient_help'] = 'البريد الإلكتروني الذي يستقبل ما يرسله الزوار من النموذج. اتركه فارغًا لاستخدام البريد المضبوط في تبويب التذييل (أو، إن لم يوجد، بريد الدعم للموقع).';
+$string['contactformheading'] = 'أرسل لنا رسالة';
+$string['contactphname'] = 'أدخل اسمك';
+$string['contactphemail'] = 'أدخل بريدك الإلكتروني';
+$string['contactphphone'] = 'رقم الهاتف';
+$string['contactphmessage'] = 'الرسالة';
+$string['contactsend'] = 'إرسال';
+$string['contactsent'] = 'شكرًا لك — تم إرسال رسالتك وسنتواصل معك قريبًا.';
+$string['contacterrname'] = 'من فضلك أدخل اسمك.';
+$string['contacterremail'] = 'من فضلك أدخل بريدًا إلكترونيًا صحيحًا.';
+$string['contacterrmessage'] = 'من فضلك اكتب رسالتك.';
+$string['contacterrlong'] = 'الرسالة طويلة جدًا — الحد الأقصى {$a} حرف.';
+$string['contacterrwait'] = 'لقد أرسلت رسالة للتو. من فضلك انتظر دقيقة قبل إرسال رسالة أخرى.';
+$string['contacterrsend'] = 'تعذّر إرسال رسالتك. من فضلك حاول لاحقًا.';
+$string['contactaddress'] = 'العنوان:';
+$string['followuson'] = 'تابعنا على';
+$string['contactmailsubject'] = '{$a->site}: رسالة جديدة من {$a->name}';
+$string['contactmailbody'] = 'أرسل أحد الزوار رسالة من صفحة اتصل بنا.
+
+الاسم: {$a->name}
+البريد الإلكتروني: {$a->email}
+الهاتف: {$a->phone}
+
+{$a->message}';
