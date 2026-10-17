@@ -84,7 +84,7 @@
                     {{/hasheading}}
                     <ul class="nit-sitefooter__links">
                         {{#links}}
-                            <li><a href="{{url}}" dir="auto">{{{label}}}</a></li>
+                            <li><a href="{{url}}">{{{label}}}</a></li>
                         {{/links}}
                     </ul>
                 </section>
@@ -109,7 +109,9 @@
         </div>
 
         {{#copyright}}
-            <p class="nit-sitefooter__copyright" dir="auto">{{{copyright}}}</p>
+            {{! No dir="auto": the line is in the page language, but "© 2026 EAAC." opens
+                with Latin letters, so auto made the whole Arabic sentence LTR. }}
+            <p class="nit-sitefooter__copyright">{{{copyright}}}</p>
         {{/copyright}}
     </div>
 </footer>

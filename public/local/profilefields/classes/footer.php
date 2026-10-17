@@ -269,7 +269,21 @@ class footer {
      * @return string
      */
     public static function text(string $name): string {
-        $order = array_unique(array_merge([current_language()], ['en'], self::langs()));
+        $current = current_language();
+
+        // The interface language's own box first, then the shipped text for that
+        // language. A box left empty on save stores '' rather than nothing, so
+        // get() no longer falls back to the default - and without this rung the
+        // Arabic page showed the English "Explore" instead of the shipped Arabic.
+        $value = trim(self::raw($name, $current));
+        if ($value === '') {
+            $value = trim((string) (self::defaults()[$name . '_' . $current] ?? ''));
+        }
+        if ($value !== '') {
+            return $value;
+        }
+
+        $order = array_unique(array_merge(['en'], self::langs()));
 
         foreach ($order as $lang) {
             if (!in_array($lang, self::langs(), true)) {

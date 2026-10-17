@@ -113,6 +113,18 @@ $visiblecourse = function (int $courseid) {
     return $cache[$courseid];
 };
 
+/**
+ * The picture a course card shows: the course's own image, or core's generated pattern.
+ *
+ * @param \stdClass $course
+ * @return string
+ */
+$courseimage = function (\stdClass $course): string {
+    global $OUTPUT;
+    $url = \core_course\external\course_summary_exporter::get_course_image($course);
+    return $url ?: $OUTPUT->get_generated_image_for_id($course->id);
+};
+
 // ── What the coupon buys ────────────────────────────────────────────────────────
 // Each scope row becomes a group: a heading (what the admin ticked) plus, where the group
 // stands for something that contains courses, the courses themselves. Two groups are
@@ -120,6 +132,33 @@ $visiblecourse = function (int $courseid) {
 // and a list of everything is a worse answer than a link to the catalogue.
 $hassubs = class_exists('\local_nit_subscriptions\subscription_manager');
 $groups = [];
+
+// Plans are drawn as the design's small plan cards (duration, name, price, course count), so
+// they are read from the same public feed the plan cards and the plan page read — one price
+// for a plan wherever it is shown. A plan that feed leaves out for this visitor (no country
+// yet, say) still gets a card, just without a price.
+$planfeed = [];
+if ($hassubs) {
+    require_once($CFG->dirroot . '/local/nit_subscriptions/lib.php');
+    foreach (nit_subscriptions_available() as $row) {
+        $planfeed[(int) $row['id']] = $row;
+    }
+}
+$plancard = function (int $planid, string $fallbackname) use ($planfeed): array {
+    $row = $planfeed[$planid] ?? null;
+    $price = '';
+    if ($row && empty($row['country_required'])) {
+        $amount = ($row['offer_label'] !== '' && $row['offer_final'] > 0) ? $row['offer_final'] : $row['price'];
+        $price = rtrim(rtrim(number_format((float) $amount, 2), '0'), '.') . ' ' . $row['currency'];
+    }
+    return [
+        'name'    => $row ? $row['name'] : $fallbackname,
+        'url'     => new moodle_url('/local/nit_subscriptions/plan.php', ['id' => $planid]),
+        'days'    => $row ? get_string('cpn_plan_days', 'local_nit_commerce', (int) $row['duration_days']) : '',
+        'price'   => trim($price),
+        'courses' => $row ? get_string('cpn_plan_courses', 'local_nit_commerce', (int) $row['courses_count']) : '',
+    ];
+};
 
 foreach ($coupon['applies_to'] as $scope) {
     $type = (string) $scope['item_type'];
@@ -168,6 +207,7 @@ foreach ($coupon['applies_to'] as $scope) {
         $group['linktext'] = get_string('cpn_browse_all', 'local_nit_commerce');
 
     } else if ($type === 'subscription' && $itemid > 0 && $hassubs) {
+        $group['plans'][] = $plancard($itemid, (string) $scope['label']);
         foreach (\local_nit_subscriptions\subscription_manager::courses_detail($itemid) as $entry) {
             $course = $visiblecourse((int) $entry['id']);
             if ($course) {
@@ -182,10 +222,8 @@ foreach ($coupon['applies_to'] as $scope) {
         // unlike "every course on the site".
         foreach (\local_nit_subscriptions\subscription_manager::get_subscriptions(
                 \local_nit_subscriptions\subscription_manager::STATUS_ACTIVE) as $plan) {
-            $group['plans'][] = [
-                'name' => format_string(\local_nit_subscriptions\subscription_manager::resolve_mlang($plan->name)),
-                'url'  => new moodle_url('/local/nit_subscriptions/plan.php', ['id' => (int) $plan->id]),
-            ];
+            $group['plans'][] = $plancard((int) $plan->id,
+                format_string(\local_nit_subscriptions\subscription_manager::resolve_mlang($plan->name)));
         }
     }
 
@@ -204,6 +242,18 @@ if ((int) $coupon['usage_limit'] > 0) {
 $description = trim(strip_tags((string) $coupon['description'])) !== '' ? $coupon['description'] : '';
 $name = ($coupon['name'] !== '') ? $coupon['name'] : $coupon['code'];
 
+// The site mark the design prints on the ticket — the navbar's own logo, so a category's mark
+// and the light/dark variant come along for free.
+$logourl = '';
+if (function_exists('theme_nit_logo_url')) {
+    $logo = theme_nit_logo_url('logocompact', 0, 120) ?: theme_nit_logo_url('logo', 0, 120);
+    $logourl = $logo ? $logo->out(false) : '';
+}
+if ($logourl === '') {
+    $logo = $OUTPUT->get_compact_logo_url(0, 120) ?: $OUTPUT->get_logo_url(0, 120);
+    $logourl = $logo ? $logo->out(false) : '';
+}
+
 $PAGE->requires->js(new moodle_url('/local/nit_commerce/coupon.js',
     ['v' => get_config('local_nit_commerce', 'version')]), true);
 
@@ -221,27 +271,39 @@ echo $OUTPUT->header();
     </nav>
 
     <!-- ── Ticket: the value, the code, and how to spend it ───────────────────── -->
+    <!-- The Figma ticket: a stub on the start edge carrying the value on its side, a stamp-edge
+         seam, and a centred body — the site mark, "<name> <value>", a perforation, then the
+         code in a dashed box. The description and the "OFF" wording are not in the design and
+         are kept, in the body and under the stub value. -->
     <header class="nitcpn__ticket">
       <div class="nitcpn__stub">
         <span class="nitcpn__stubvalue"><?= $ispercent
-            ? s(rtrim(rtrim(number_format($valuenum, 2), '0'), '.')) . '<small>%</small>'
-            : s(number_format($valuenum, 2)) ?></span>
+            ? s(rtrim(rtrim(number_format($valuenum, 2), '0'), '.')) . '%'
+            : s(rtrim(rtrim(number_format($valuenum, 2), '0'), '.')) ?></span>
         <span class="nitcpn__stublabel"><?= $ispercent
             ? s(get_string('cpn_stub_off', 'local_nit_commerce'))
             : s($currency . ' ' . get_string('cpn_stub_off', 'local_nit_commerce')) ?></span>
       </div>
 
       <div class="nitcpn__body">
-        <h1 class="nitcpn__title"><?= s($name) ?></h1>
-        <p class="nitcpn__value"><?= s($valuetext) ?></p>
+        <?php if ($logourl !== ''): ?>
+          <img class="nitcpn__logo" src="<?= s($logourl) ?>" alt="<?= s(format_string($SITE->shortname)) ?>">
+        <?php endif; ?>
+        <h1 class="nitcpn__title">
+          <span><?= s($name) ?></span>
+          <span class="nitcpn__value"><?= s($valuetext) ?></span>
+        </h1>
 
         <?php if ($description !== ''): ?>
           <div class="nitcpn__intro"><?= $description ?></div>
         <?php endif; ?>
 
+        <hr class="nitcpn__perf" aria-hidden="true">
+
         <div class="nitcpn__codewrap">
           <span class="nitcpn__codelabel"><?= s(get_string('cpn_code_label', 'local_nit_commerce')) ?></span>
-          <button type="button" class="nitcpn__code" data-nitcpn-copy="<?= s($coupon['code']) ?>">
+          <button type="button" class="nitcpn__code" data-nitcpn-copy="<?= s($coupon['code']) ?>"
+                  title="<?= s(get_string('cpn_copy', 'local_nit_commerce')) ?>">
             <span class="nitcpn__codetext"><?= s($coupon['code']) ?></span>
             <span class="nitcpn__codeicon" aria-hidden="true">⧉</span>
           </button>
@@ -318,11 +380,22 @@ echo $OUTPUT->header();
             </div>
 
             <?php if (!empty($group['plans'])): ?>
-              <ul class="nitcpn__items">
+              <!-- The design's small plan cards: duration, name, price, course count. -->
+              <ul class="nitcpn__plans">
                 <?php foreach ($group['plans'] as $plan): ?>
-                  <li class="nitcpn__item">
-                    <span class="nitcpn__tick" aria-hidden="true">✓</span>
-                    <a href="<?= s($plan['url']->out()) ?>"><?= s($plan['name']) ?></a>
+                  <li class="nitcpn__plan">
+                    <a class="nitcpn__planlink" href="<?= s($plan['url']->out()) ?>">
+                      <?php if ($plan['days'] !== ''): ?>
+                        <span class="nitcpn__plandays"><?= s($plan['days']) ?></span>
+                      <?php endif; ?>
+                      <span class="nitcpn__planname"><?= s($plan['name']) ?></span>
+                      <?php if ($plan['price'] !== ''): ?>
+                        <span class="nitcpn__planprice"><?= s($plan['price']) ?></span>
+                      <?php endif; ?>
+                      <?php if ($plan['courses'] !== ''): ?>
+                        <span class="nitcpn__plancourses"><?= s($plan['courses']) ?></span>
+                      <?php endif; ?>
+                    </a>
                   </li>
                 <?php endforeach; ?>
               </ul>
@@ -333,12 +406,15 @@ echo $OUTPUT->header();
                 <p class="nitcpn__grouphint"><?=
                   s(get_string('cpn_courses_under', 'local_nit_commerce', $group['label'])) ?></p>
               <?php endif; ?>
-              <ul class="nitcpn__items">
+              <!-- The design's course tiles: the course image with its name over it. -->
+              <ul class="nitcpn__courses">
                 <?php foreach ($group['courses'] as $course): ?>
-                  <li class="nitcpn__item">
-                    <span class="nitcpn__tick" aria-hidden="true">✓</span>
-                    <a href="<?= s((new moodle_url('/course/view.php', ['id' => $course->id]))->out()) ?>"><?=
-                      s(format_string($course->fullname)) ?></a>
+                  <li class="nitcpn__course">
+                    <a class="nitcpn__courselink"
+                       href="<?= s((new moodle_url('/course/view.php', ['id' => $course->id]))->out()) ?>">
+                      <img class="nitcpn__courseimg" src="<?= s($courseimage($course)) ?>" alt="" loading="lazy">
+                      <span class="nitcpn__coursename"><?= s(format_string($course->fullname)) ?></span>
+                    </a>
                   </li>
                 <?php endforeach; ?>
               </ul>

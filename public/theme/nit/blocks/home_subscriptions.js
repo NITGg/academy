@@ -13,6 +13,24 @@
       if (modal && modal.parentNode) {
         document.body.appendChild(modal);
       }
+      // The Figma plan card's highlighted state — full accent outline, soft glow, brackets at
+      // full strength — drawn on hover and on keyboard focus inside the card. A stylesheet,
+      // because inline styles (all a pasted block can carry) have no :hover. Cards from an
+      // older paste have no [data-nit-plan-card] and are left alone.
+      if (!document.getElementById('nit-plancard-style')) {
+        var pcs = document.createElement('style');
+        pcs.id = 'nit-plancard-style';
+        pcs.textContent =
+          '[data-nit-plan-card]{transition:border-color .25s ease,box-shadow .25s ease,transform .25s ease}' +
+          '[data-nit-plan-card] [data-nit-bracket]{opacity:.55;transition:opacity .25s ease}' +
+          '[data-nit-plan-card]:not([data-nit-active]):hover,[data-nit-plan-card]:not([data-nit-active]):focus-within{' +
+          'border-color:var(--nit-brand-accent)!important;transform:translateY(-4px);' +
+          'box-shadow:0 0 24px color-mix(in srgb,var(--nit-brand-accent) 38%,transparent),0 16px 22px rgba(0,0,0,.08)!important}' +
+          '[data-nit-plan-card]:hover [data-nit-bracket],[data-nit-plan-card]:focus-within [data-nit-bracket]{opacity:1}' +
+          '@media (prefers-reduced-motion:reduce){[data-nit-plan-card]{transition:none}' +
+          '[data-nit-plan-card]:hover,[data-nit-plan-card]:focus-within{transform:none}}';
+        (document.head || document.documentElement).appendChild(pcs);
+      }
       var base = (window.M && M.cfg && M.cfg.wwwroot) ? M.cfg.wwwroot : (root
         .getAttribute('data-base') || '');
       var sesskey = (window.M && M.cfg && M.cfg.sesskey) ? M.cfg.sesskey : '';
@@ -495,8 +513,9 @@
               .replace(/\{\{description\}\}/g, esc(desc));
 
             var wrap = document.createElement('div');
+            // The Figma card is 304 × 427; it may shrink on a phone but never grows past it.
             wrap.style.cssText =
-              'flex: 1 1 280px; max-width: 310px; min-height: 420px; display: flex; flex-direction: column;';
+              'flex: 0 1 304px; max-width: 304px; min-width: 0; min-height: 427px; display: flex; flex-direction: column;';
             wrap.setAttribute('data-sub-id', s.id);
             wrap.setAttribute('data-sub-name', s.name);
             wrap.setAttribute('data-sub-days', s.duration_days);
@@ -547,7 +566,7 @@
                 priceEl.textContent = moneyShort(s.offer_final);
                 origEl.textContent = moneyShort(s.price);
                 ofLabel.textContent = s.offer_label;
-                ofDiv.style.display = '';
+                ofDiv.style.display = 'flex';
               }
             }
 
@@ -616,6 +635,8 @@
                 // This is the user's active card — highlight it.
                 var inner = card.firstElementChild;
                 if (inner) {
+                  // Opts the card out of the hover outline below, so the green ring stays.
+                  inner.setAttribute('data-nit-active', '1');
                   inner.style.border =
                     '2px solid var(--nit-brand-success)';
                   inner.style.boxShadow =

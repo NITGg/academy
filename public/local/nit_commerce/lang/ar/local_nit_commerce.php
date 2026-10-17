@@ -69,6 +69,8 @@ $string['cpn_starts']        = 'يبدأ';
 $string['cpn_expires']       = 'ينتهي';
 $string['cpn_howto']         = 'أدخل هذا الكود عند الدفع للحصول على الخصم.';
 $string['cpn_stub_off']      = 'خصم';
+$string['cpn_plan_days']     = '{$a} يوم';
+$string['cpn_plan_courses']  = '{$a} كورس مشمول';
 
 // ── Plugin identity and admin navigation (Site administration + navbar gear menu) ──
 $string['pluginname']       = 'المبيعات والعروض (NIT)';

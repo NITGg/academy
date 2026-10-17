@@ -203,6 +203,9 @@ $string['cpn_starts']        = 'Starts';
 $string['cpn_expires']       = 'Expires';
 $string['cpn_howto']         = 'Enter this code at checkout to get the discount.';
 $string['cpn_stub_off']      = 'OFF';
+// The plan cards under "Where you can use it" (a coupon that covers subscriptions).
+$string['cpn_plan_days']     = '{$a} days';
+$string['cpn_plan_courses']  = '{$a} courses included';
 
 // ── Coupon redemption report (AC-4.12.8) ──
 $string['tab_manage']          = 'Coupons';
