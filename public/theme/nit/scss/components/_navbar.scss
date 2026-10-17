@@ -211,7 +211,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // draws if the custom property has not been published yet. The bar grows to
     // fit a taller logo — see theme_nit_navbar_height().
     .nit-navbar-logo {
-        height: var(--nit-logo-navbar, 56px);
+        height: var(--nit-logo-navbar, 32px);
         width: auto;
     }
 
@@ -465,7 +465,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     .nit-navbar-lang .langmenu .dropdown .dropdown-toggle {
         display: inline-flex;
         align-items: center;
-        height: var(--nit-navicon-box, 42px);
+        height: var(--nit-navicon-box, 36px);
         padding: 0 0.25rem;
         border: 0;
         border-radius: 10px;
@@ -520,12 +520,12 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // renderer draws a single link straight to it rather than a dropdown with
     // one row in it (see core_renderer::navbar_language_menu). It has to look
     // identical to the dropdown version above — same type, same colour, same
-    // 42px box — so the bar does not change when a third language is installed
+    // 36px box — so the bar does not change when a third language is installed
     // and the control reverts to a menu.
     .nit-navbar-lang .langmenu .nit-langtoggle {
         display: inline-flex;
         align-items: center;
-        height: var(--nit-navicon-box, 42px);
+        height: var(--nit-navicon-box, 36px);
         padding: 0 0.25rem;
         border: 0;
         border-radius: 10px;
@@ -566,7 +566,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     }
 
     // ---- Light/dark switch ---------------------------------------------------
-    // The box comes from `.nit-navbar-icon` (the bare 42px glyph button shared
+    // The box comes from `.nit-navbar-icon` (the bare 36px glyph button shared
     // with search, the bell and the gear); all this adds is which of the two
     // glyphs is showing. Both are in the markup and CSS hides one, keyed off the
     // `data-nit-mode` attribute the click handler flips — so the icon follows the
@@ -592,7 +592,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // dark 42px discs with a border and an accent glyph, which read as five
     // buttons competing with the one real button on the bar (the red login CTA).
     //
-    // The button box is kept at 42px and simply made invisible (transparent
+    // The button box is kept at 36px and simply made invisible (transparent
     // border and background): a 22px bare glyph is well under the 44px pointer
     // target the bar needs on a touch screen, and shrinking the box to the glyph
     // would also re-open the oval-bell problem the fixed square solves. Hover is
@@ -600,7 +600,7 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
     // icon hover colour, so the control still answers the cursor.
     //
     // The box follows the admin's glyph size UP and never DOWN
-    // (theme_nit_navbar_icon_box(): `max(42px, glyph + 20px)`), for that same
+    // (theme_nit_navbar_icon_box(): `max(36px, glyph + 18px)`), for that same
     // reason — an admin asking for smaller icons is not asking for a target too
     // small to hit.
     .nit-navbar-icon,
@@ -611,12 +611,12 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         // Lock a perfect square. `aspect-ratio` guarantees width == height even
         // if flex or an inner glyph tries to stretch one side (this is what kept
         // the bell an oval).
-        flex: 0 0 var(--nit-navicon-box, 42px);
+        flex: 0 0 var(--nit-navicon-box, 36px);
         box-sizing: border-box;
-        width: var(--nit-navicon-box, 42px);
-        height: var(--nit-navicon-box, 42px);
-        min-width: var(--nit-navicon-box, 42px);
-        max-width: var(--nit-navicon-box, 42px);
+        width: var(--nit-navicon-box, 36px);
+        height: var(--nit-navicon-box, 36px);
+        min-width: var(--nit-navicon-box, 36px);
+        max-width: var(--nit-navicon-box, 36px);
         aspect-ratio: 1;
         padding: 0;
         // No chrome at rest. The border stays declared (transparent) rather than
@@ -686,10 +686,10 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         position: relative;
         overflow: visible;
         align-self: center;
-        width: var(--nit-navicon-box, 42px) !important;
-        height: var(--nit-navicon-box, 42px) !important;
-        min-height: var(--nit-navicon-box, 42px);
-        max-height: var(--nit-navicon-box, 42px);
+        width: var(--nit-navicon-box, 36px) !important;
+        height: var(--nit-navicon-box, 36px) !important;
+        min-height: var(--nit-navicon-box, 36px);
+        max-height: var(--nit-navicon-box, 36px);
         border-radius: 10px !important;
 
         &::before,
@@ -722,8 +722,8 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         .userbutton img {
             border: 2px solid color-mix(in srgb, var(--nit-brand-textprimary) 70%, transparent);
             border-radius: 50%;
-            width: var(--nit-navicon-box, 42px);
-            height: var(--nit-navicon-box, 42px);
+            width: var(--nit-navicon-box, 36px);
+            height: var(--nit-navicon-box, 36px);
             object-fit: cover;
         }
     }

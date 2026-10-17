@@ -730,7 +730,7 @@ function theme_nit_navbar_shape(string $group, string $state): array {
  * bar out of its own height.
  *
  * Two notes on what "icon size" reaches. It is the GLYPH, not the button: the
- * 42px pointer target grows only if the glyph outgrows it
+ * 36px pointer target grows only if the glyph outgrows it
  * (theme_nit_navbar_icon_box()), so making icons smaller never makes them harder
  * to hit. And "icon weight" is only visible on the parts of the cluster that are
  * type rather than a glyph — the language code (EN / AR) — because Font Awesome
@@ -752,7 +752,7 @@ function theme_nit_navbar_type_subjects(): array {
             'label'  => 'Navbar icon size',
             'short'  => 'Icon size',
             'usage'  => ['size of the navbar glyphs', 'the button grows only if the glyph outgrows it', 'weight reaches the language code (EN / AR), not the glyphs'],
-            'size'   => 22, 'weight' => 500, 'min' => 14, 'max' => 36,
+            'size'   => 18, 'weight' => 500, 'min' => 14, 'max' => 36,
         ],
         'login' => [
             'sub'    => 'login',
@@ -826,7 +826,7 @@ function theme_nit_navbar_type_weight(string $group, string $subject): int {
 /**
  * How wide the square icon button is, for a given glyph size.
  *
- * The button is 42px and stays 42px until the glyph would not fit in it — a
+ * The button is 36px and stays 36px until the glyph would not fit in it — a
  * pointer target that shrinks with the glyph would put the smallest setting well
  * under what a finger can hit, which is the one thing an admin choosing "small
  * icons" is not asking for.
@@ -835,7 +835,7 @@ function theme_nit_navbar_type_weight(string $group, string $subject): int {
  * @return int the button's side, in px
  */
 function theme_nit_navbar_icon_box(int $glyph): int {
-    return max(42, $glyph + 20);
+    return max(36, $glyph + 18);
 }
 
 /**
@@ -3516,7 +3516,7 @@ function theme_nit_logo_slots(): array {
         'navbar' => [
             'setting'  => 'logoheightnavbar',
             'property' => '--nit-logo-navbar',
-            'default'  => 56,
+            'default'  => 32,
         ],
         // The header of the phone-width primary drawer (Boost's
         // primary-drawer-mobile template): the same mark, in the menu that
@@ -3925,14 +3925,14 @@ function theme_nit_logo_height(string $slot): int {
  * `$navbar-height` drives both the bar itself and the content offset underneath
  * it in every Boost layout (drawer.scss, layout.scss, navbar.scss), so a logo
  * taller than the bar would spill out of it rather than push it open. Grow-only:
- * the bar keeps its designed 80px (the Figma nav) until the logo plus its
- * breathing room needs more, so shrinking the logo below 56px never shrinks it.
+ * the bar keeps its compact 64px until the logo plus its breathing room needs
+ * more (a logo over 40px), so shrinking the logo never shrinks it further.
  *
  * @return int height in pixels
  */
 function theme_nit_navbar_height(): int {
-    // 12px of clearance above and below the mark: the 56px default fills the 80px bar.
-    return (int) max(80, theme_nit_logo_height('navbar') + 24);
+    // At least 12px of clearance above and below the mark; the 32px default gets 16px.
+    return (int) max(64, theme_nit_logo_height('navbar') + 24);
 }
 
 /**

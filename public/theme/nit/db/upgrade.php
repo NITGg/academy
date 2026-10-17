@@ -97,5 +97,27 @@ function xmldb_theme_nit_upgrade($oldversion): bool {
         upgrade_plugin_savepoint(true, 2026101702, 'theme', 'nit');
     }
 
+    if ($oldversion < 2026101703) {
+        // Compact top bar (64px): logo 32px, icons 18px in a 36px box. The logo
+        // moves only from a height this theme set (the 66 default, or the 56 the
+        // 80px bar asked for); any other value was an administrator's choice.
+        // The per-group icon sizes are cleared so every group takes the new
+        // 18px default, as the title / log-in sizes were in 2026101701.
+        if (in_array((string) get_config('theme_nit', 'logoheightnavbar'), ['66', '56'], true)) {
+            set_config('logoheightnavbar', 32, 'theme_nit');
+        }
+        global $DB;
+        $names = $DB->get_fieldset_select('config_plugins', 'name',
+            "plugin = 'theme_nit' AND " . $DB->sql_like('name', ':a'), ['a' => 'navbarsize\_%']);
+        foreach ($names as $name) {
+            if (preg_match('/_icon$/', $name)) {
+                unset_config($name, 'theme_nit');
+            }
+        }
+        theme_reset_all_caches();
+
+        upgrade_plugin_savepoint(true, 2026101703, 'theme', 'nit');
+    }
+
     return true;
 }
