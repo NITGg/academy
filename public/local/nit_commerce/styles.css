@@ -99,6 +99,7 @@
 /* The value on its side, reading top to bottom, as the design prints it. */
 .nitcpn__stubvalue {
     writing-mode: vertical-rl;
+    /*!rtl:ignore*/
     direction: ltr;
     unicode-bidi: isolate;
     font-size: clamp(48px, 6vw, 72px);
@@ -523,6 +524,10 @@
     font-weight: 700;
     color: var(--ctext1);
     text-align: center;
+    /* "449 EGP" as the design prints it, not "EGP 449" in Arabic. */
+    /*!rtl:ignore*/
+    direction: ltr;
+    unicode-bidi: isolate;
 }
 
 .nitcpn__plancourses {

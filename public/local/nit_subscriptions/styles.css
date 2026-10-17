@@ -48,22 +48,27 @@
     text-decoration: underline;
 }
 
-/* ── Hero ──────────────────────────────────────────────────────────────────────── */
+/* ── Hero (the Figma "الاشتراك" frame) ─────────────────────────────────────────────
+   The plan on the start side — title, then two figures, each a label over a large accent
+   value — and the price card on the end side. No divider under it in the design. */
 
 .nitplan__hero {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
-    gap: clamp(20px, 3vw, 40px);
+    grid-template-columns: minmax(0, 1fr) 370px;
+    gap: clamp(24px, 4vw, 64px);
     align-items: start;
-    padding-bottom: 40px;
-    border-bottom: 1px solid var(--cborder);
+    padding: 24px 0 24px;
 }
 
 .nitplan__badges {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
+}
+
+.nitplan__badges:empty {
+    display: none;
 }
 
 .nitplan__badge {
@@ -88,6 +93,7 @@
 /* "-10%" is all neutral characters, so an Arabic page would otherwise print it "10%-".
    The label is generated, never translated, and is always this shape. */
 .nitplan__badge--offer {
+    /*!rtl:ignore*/
     direction: ltr;
     unicode-bidi: isolate;
 }
@@ -99,18 +105,20 @@
 }
 
 .nitplan__title {
-    font-size: clamp(28px, 4vw, 42px);
-    font-weight: 800;
-    line-height: 1.2;
+    font-size: clamp(28px, 3.4vw, 36px);
+    font-weight: 500;
+    line-height: 1.4;
     color: var(--ctext1);
-    margin: 0 0 14px;
+    margin: 0;
 }
 
+/* Not in the design; kept because the plan has one. */
 .nitplan__intro {
     color: var(--ctext2);
     font-size: 15px;
     line-height: 1.85;
     max-width: 68ch;
+    margin-top: 10px;
 }
 
 .nitplan__intro p:last-child {
@@ -120,44 +128,43 @@
 .nitplan__facts {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 24px clamp(32px, 9vw, 140px);
     list-style: none;
-    margin: 22px 0 0;
-    padding: 0;
+    margin: 48px 0 0;
+    padding: 0 clamp(0px, 3vw, 40px);
 }
 
 .nitplan__facts li {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    min-width: 150px;
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 1px solid var(--cborder);
-    background: var(--cbg2);
+    align-items: center;
+    gap: 22px;
+    text-align: center;
 }
 
 .nitplan__factlabel {
-    font-size: 12px;
-    color: var(--ctext2);
-}
-
-.nitplan__facts strong {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 400;
     color: var(--ctext1);
 }
 
-/* ── Price panel ───────────────────────────────────────────────────────────────── */
+.nitplan__facts strong {
+    font-size: clamp(24px, 2.6vw, 30px);
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--ctext3);
+}
+
+/* ── Price card ────────────────────────────────────────────────────────────────── */
 
 .nitplan__buy {
     position: sticky;
     top: 90px;
     background: var(--cbg2);
-    border: 1px solid color-mix(in srgb, var(--caccent) 28%, transparent);
-    border-radius: 18px;
-    padding: 24px;
-    box-shadow: 0 18px 44px rgba(0, 0, 0, .28);
+    border: 1px solid color-mix(in srgb, var(--ctext1) 8%, transparent);
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 16px 22px rgba(0, 0, 0, .14);
     text-align: center;
 }
 
@@ -165,76 +172,77 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    margin-bottom: 18px;
+    gap: 2px;
+    margin-bottom: 26px;
 }
 
 .nitplan__was {
     font-size: 15px;
-    color: var(--ctext2);
+    color: var(--cerror);
     text-decoration: line-through;
+    /*!rtl:ignore*/
+    direction: ltr;
+    unicode-bidi: isolate;
 }
 
+/* "800.00 EGP" as the design prints it, not "EGP 800.00" in Arabic. */
 .nitplan__now {
-    font-size: 38px;
-    font-weight: 800;
-    line-height: 1.1;
-    color: var(--ctext3);
+    font-size: clamp(28px, 3vw, 36px);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--ctext1);
+    /*!rtl:ignore*/
+    direction: ltr;
+    unicode-bidi: isolate;
 }
 
 .nitplan__per {
-    font-size: 13px;
+    font-size: 18px;
     color: var(--ctext2);
 }
 
-.nitplan__cta {
-    display: block;
+/* The colours are the Main button's (.btn.btn-primary on the element); only the size and
+   shape are the design's. */
+.nitplan .nitplan__cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
+    min-height: 48px;
     box-sizing: border-box;
-    background: var(--cbg4);
-    border: 1px solid var(--cbg4);
-    color: var(--nit-brand-on-primary, var(--ctext1));
-    border-radius: 10px;
-    padding: 13px 18px;
-    font-size: 15px;
-    font-weight: 700;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 16px;
+    font-weight: 500;
     text-align: center;
     text-decoration: none;
-    cursor: pointer;
-    transition: background .2s ease, transform .2s ease, box-shadow .2s ease;
+    transition: transform .2s ease, box-shadow .2s ease;
 }
 
 .nitplan__cta:hover:not(:disabled):not(.nitplan__cta--owned) {
-    background: var(--nit-brand-primary-hover, var(--cbg4));
-    color: var(--nit-brand-on-primary, var(--ctext1));
     text-decoration: none;
     transform: translateY(-2px);
     box-shadow: 0 10px 24px rgba(0, 0, 0, .32);
 }
 
-.nitplan__cta:disabled {
-    opacity: .5;
-    cursor: default;
-}
-
 .nitplan__cta--owned {
     background: color-mix(in srgb, var(--csuccess) 15%, transparent);
-    border-color: color-mix(in srgb, var(--csuccess) 45%, transparent);
+    border: 1px solid color-mix(in srgb, var(--csuccess) 45%, transparent);
     color: var(--csuccess);
     cursor: default;
 }
 
-.nitplan__cta--inline {
+.nitplan .nitplan__cta--inline {
     width: auto;
-    display: inline-block;
+    display: inline-flex;
 }
 
 .nitplan__note,
 .nitplan__secure,
 .nitplan__countrymsg {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--ctext2);
-    margin: 12px 0 0;
+    margin: 14px 0 0;
     line-height: 1.6;
 }
 
@@ -248,12 +256,12 @@
 /* ── Sections ──────────────────────────────────────────────────────────────────── */
 
 .nitplan__section {
-    padding: 36px 0 0;
+    padding: 56px 0 0;
 }
 
 .nitplan__h2 {
-    font-size: clamp(19px, 2.4vw, 24px);
-    font-weight: 800;
+    font-size: clamp(20px, 2.2vw, 24px);
+    font-weight: 500;
     color: var(--ctext1);
     margin: 0 0 6px;
 }
@@ -264,97 +272,90 @@
     margin: 0 0 16px;
 }
 
-/* ── Included courses ──────────────────────────────────────────────────────────── */
+/* ── Included courses: image tiles ─────────────────────────────────────────────── */
 
 .nitplan__courses {
     list-style: none;
-    margin: 16px 0 0;
+    margin: 24px 0 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 32px;
 }
 
-/* Positioned, because the link inside covers the card with a stretched ::after rather than
-   by being sized to it. local_payments' course_cards.js runs on every page and injects a
-   price badge as a SIBLING of any /course/view.php link it finds — including these. Sizing
-   the anchor to the card would leave the badge fighting it for width; overlaying instead
-   means the whole card stays clickable no matter what gets appended next to the link. */
+/* Positioned: local_payments' course_cards.js appends a price badge as a SIBLING of every
+   /course/view.php link it finds; it is parked in the tile's bottom corner below. */
 .nitplan__course {
     position: relative;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px solid var(--cborder);
+    aspect-ratio: 400 / 250;
+    border-radius: 8px;
+    overflow: hidden;
     background: var(--cbg2);
-    transition: border-color .2s ease, transform .2s ease;
+    box-shadow: 0 16px 22px rgba(0, 0, 0, .2);
+    transition: transform .2s ease, box-shadow .2s ease;
 }
 
 .nitplan__course:hover {
-    border-color: var(--caccent);
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 30px rgba(0, 0, 0, .3);
 }
 
-/* The link carries the padding, so the whole card is the hit area rather than just the
-   words inside it. No underline on hover — the card lifts and its border lights up, which
-   is the affordance; an underline on top of that just looks like a defect. */
-/* Takes a full row of its own, so an injected price badge wraps underneath rather than
-   squeezing the title. No underline on hover — the card lifts and its border lights up,
-   which is the affordance; an underline on top of that just reads as a defect. */
 .nitplan__courselink {
-    flex: 1 1 100%;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    position: absolute;
+    inset: 0;
+    display: block;
+    color: #fff;
     text-decoration: none;
-    color: inherit;
 }
 
 .nitplan__courselink:hover,
 .nitplan__courselink:focus {
+    color: #fff;
     text-decoration: none;
-    color: inherit;
 }
 
-/* The actual hit area: the whole card, including any badge sitting below the title. */
-.nitplan__courselink::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 12px;
-}
-
-.nitplan__courselink:focus-visible::after {
+.nitplan__courselink:focus-visible {
     outline: 2px solid var(--caccent);
     outline-offset: -2px;
 }
 
-.nitplan__tick {
-    flex: 0 0 auto;
-    color: var(--csuccess);
-    font-weight: 700;
+.nitplan__courseimg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* A shade from the top so the name stays legible (white on a photo) on any picture. */
+.nitplan__courselink::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, .62) 0%, rgba(0, 0, 0, .15) 55%, rgba(0, 0, 0, .35) 100%);
 }
 
 .nitplan__coursename {
-    flex: 1 1 auto;
-    min-width: 0;
-    color: var(--ctext1);
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.nitplan__courselink:hover .nitplan__coursename {
-    color: var(--ctext3);
+    position: absolute;
+    top: 22px;
+    inset-inline: 24px;
+    font-size: clamp(18px, 1.8vw, 24px);
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: start;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, .45);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .nitplan__courseopen {
-    flex: 0 0 auto;
-    font-size: 12px;
+    position: absolute;
+    bottom: 16px;
+    inset-inline-end: 20px;
+    font-size: 13px;
     font-weight: 700;
-    color: var(--ctext3);
+    color: #fff;
     white-space: nowrap;
 }
 
@@ -626,7 +627,21 @@
    overlay's way. Purely informative here — what the course costs on its own, next to the
    plan that includes it — so it needs no clicks of its own. */
 .nitplan__course .lp-card-badge {
-    flex: 1 1 100%;
-    margin: 8px 0 0;
+    position: absolute;
+    bottom: 14px;
+    inset-inline-start: 16px;
+    margin: 0;
     pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nitplan__course,
+    .nitplan__cta {
+        transition: none;
+    }
+
+    .nitplan__course:hover,
+    .nitplan__cta:hover:not(:disabled):not(.nitplan__cta--owned) {
+        transform: none;
+    }
 }

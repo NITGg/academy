@@ -267,6 +267,7 @@ echo $OUTPUT->header();
           <div class="nitplan__intro"><?= $description ?></div>
         <?php endif; ?>
 
+        <!-- The design's two figures: a label over a large accent value, no boxes. -->
         <ul class="nitplan__facts">
           <li>
             <span class="nitplan__factlabel"><?= s(get_string('plan_duration', 'local_nit_subscriptions')) ?></span>
@@ -286,7 +287,7 @@ echo $OUTPUT->header();
         <?php if ($countryblocked): ?>
           <p class="nitplan__countryshort"><?= s((string) $plan['country_short']) ?></p>
           <p class="nitplan__countrymsg"><?= s((string) $plan['country_message']) ?></p>
-          <a class="nitplan__cta" href="<?= s((string) $plan['country_url']) ?>"><?= s((string) $plan['country_action']) ?></a>
+          <a class="nitplan__cta btn btn-primary" href="<?= s((string) $plan['country_url']) ?>"><?= s((string) $plan['country_action']) ?></a>
         <?php else: ?>
           <div class="nitplan__pricebox">
             <?php if ($hasoffer): ?>
@@ -302,7 +303,7 @@ echo $OUTPUT->header();
           <?php if ($iscurrent && $renewdue): ?>
             <!-- Close enough to the end that renewing is offered. The new period is added to
                  the current one, so the button is never a reason to wait for the plan to lapse. -->
-            <button type="button" class="nitplan__cta" data-nitplan-buy>
+            <button type="button" class="nitplan__cta btn btn-primary" data-nitplan-buy>
               ↻ <?= s(get_string('sub_renew', 'local_nit_subscriptions')) ?>
             </button>
             <p class="nitplan__note">
@@ -332,16 +333,16 @@ echo $OUTPUT->header();
               </p>
             <?php endif; ?>
           <?php elseif ($hasotheractive): ?>
-            <button type="button" class="nitplan__cta" disabled>
+            <button type="button" class="nitplan__cta btn btn-primary" disabled>
               <?= s(get_string('sub_buy', 'local_nit_subscriptions')) ?>
             </button>
             <p class="nitplan__note"><?= s(get_string('plan_otheractive', 'local_nit_subscriptions')) ?></p>
           <?php elseif (!isloggedin() || isguestuser()): ?>
-            <a class="nitplan__cta" href="<?= s((new moodle_url('/login/index.php'))->out()) ?>">
+            <a class="nitplan__cta btn btn-primary" href="<?= s((new moodle_url('/login/index.php'))->out()) ?>">
               <?= s(get_string('plan_login_tosubscribe', 'local_nit_subscriptions')) ?>
             </a>
           <?php else: ?>
-            <button type="button" class="nitplan__cta" data-nitplan-buy>
+            <button type="button" class="nitplan__cta btn btn-primary" data-nitplan-buy>
               <?= s(get_string('sub_buy', 'local_nit_subscriptions')) ?>
             </button>
           <?php endif; ?>
@@ -357,15 +358,18 @@ echo $OUTPUT->header();
       <?php if (!$courses): ?>
         <p class="nitplan__empty"><?= s(get_string('plan_included_none', 'local_nit_subscriptions')) ?></p>
       <?php else: ?>
+        <!-- The design's course tiles: 400 × 250, the course image with its name over it. -->
         <ul class="nitplan__courses">
           <?php foreach ($courses as $course): ?>
-            <?php $courseurl = new moodle_url('/course/view.php', ['id' => $course->id]); ?>
+            <?php
+            $courseurl = new moodle_url('/course/view.php', ['id' => $course->id]);
+            $courseimg = \core_course\external\course_summary_exporter::get_course_image($course)
+                ?: $OUTPUT->get_generated_image_for_id($course->id);
+            ?>
             <li class="nitplan__course">
-              <!-- One link filling the whole card, rather than a link on the title and another
-                   on "Open": the card looked clickable everywhere but only was in two places,
-                   and screen readers had to hear the same destination announced twice. -->
+              <!-- One link filling the whole tile, so screen readers hear the destination once. -->
               <a class="nitplan__courselink" href="<?= s($courseurl->out()) ?>">
-                <span class="nitplan__tick" aria-hidden="true">✓</span>
+                <img class="nitplan__courseimg" src="<?= s($courseimg) ?>" alt="" loading="lazy">
                 <span class="nitplan__coursename"><?= s(format_string($course->fullname)) ?></span>
                 <span class="nitplan__courseopen" aria-hidden="true"><?=
                   s(get_string('plan_opencourse', 'local_nit_subscriptions')) ?> ›</span>
@@ -451,7 +455,7 @@ echo $OUTPUT->header();
 
       <div class="nitplan__actions">
         <button type="button" class="nitplan__ghost" data-nitplan-cancel><?= s(get_string('cancel')) ?></button>
-        <button type="button" class="nitplan__cta nitplan__cta--inline" data-nitplan-proceed><?=
+        <button type="button" class="nitplan__cta nitplan__cta--inline btn btn-primary" data-nitplan-proceed><?=
           s(get_string('sub_proceed_payment', 'local_nit_subscriptions')) ?></button>
       </div>
     </div>

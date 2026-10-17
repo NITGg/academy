@@ -291,7 +291,11 @@ echo $OUTPUT->header();
         <?php endif; ?>
         <h1 class="nitcpn__title">
           <span><?= s($name) ?></span>
-          <span class="nitcpn__value"><?= s($valuetext) ?></span>
+          <?php // The bare figure, isolated left-to-right: "20%" next to Arabic text would
+                // otherwise be reordered to "%20". The full "20% off" wording is its title. ?>
+          <bdi class="nitcpn__value" dir="ltr" title="<?= s($valuetext) ?>"><?= $ispercent
+              ? s(rtrim(rtrim(number_format($valuenum, 2), '0'), '.')) . '%'
+              : s(number_format($valuenum, 2) . ' ' . $currency) ?></bdi>
         </h1>
 
         <?php if ($description !== ''): ?>
