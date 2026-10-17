@@ -93,10 +93,11 @@
             '.nit-cc-logo--crop{inset:auto;left:0;top:0;width:337.8%;height:138.7%;object-fit:fill}',
             'html.nit-mode-dark .nit-cc-logo--light,html:not(.nit-mode-dark) .nit-cc-logo--dark{display:none}',
 
-            // The name alone sits higher than the logo: lifted 10% of the
-            // card's height (6.25cqi of a 400x250 card) without moving the logo
-            // or the row - relative offset, so nothing else reflows.
-            '.nit-cc-name{position:relative;top:-6.25cqi;',
+            // The top of the name lines up with the top of the "|" rule (the row
+            // is align-items:flex-start). A line 1.364 tall leaves ~0.18em of
+            // empty leading above the letters, so the name is lifted by exactly
+            // that - relative offset, so the logo and the row do not move.
+            '.nit-cc-name{position:relative;top:-0.18em;',
             'display:block;flex:0 1 auto;min-width:0;margin:0;max-width:72cqi;',
             'font-size:clamp(16px,5.5cqi,22px);line-height:1.364;font-weight:600;',
             'color:var(--nit-brand-textprimary);text-align:start;overflow-wrap:anywhere}',
