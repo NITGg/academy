@@ -44,9 +44,8 @@
             'overflow:hidden;isolation:isolate;container-type:inline-size;',
             'background:var(--nit-brand-surface);color:var(--nit-brand-textprimary)!important;',
             'text-decoration:none!important;box-shadow:17px 21px 22px rgba(0,0,0,.5);',
-            'transition:transform .3s ease,box-shadow .3s ease}',
+            '}',
             'html.nit-mode-light .nit-cc-card{box-shadow:0 14px 30px rgba(0,0,0,.18)}',
-            '.nit-cc-card:hover{transform:translateY(-6px)}',
             '.nit-cc-card:focus-visible{outline:3px solid var(--nit-brand-primary);outline-offset:3px}',
 
             '.nit-cc-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;',
@@ -70,8 +69,28 @@
             'margin:0;font-size:clamp(18px,7cqi,28px);line-height:1.43;font-weight:700;',
             'color:var(--nit-brand-textprimary);text-align:start;overflow-wrap:anywhere}',
 
-            '@media (prefers-reduced-motion:reduce){.nit-cc-card,.nit-cc-photo{transition:none}',
-            '.nit-cc-card:hover{transform:none}.nit-cc-card:hover .nit-cc-photo{transform:none}}'
+            '@media (prefers-reduced-motion:reduce){.nit-cc-photo{transition:none}',
+            '.nit-cc-card:hover .nit-cc-photo{transform:none}}',
+
+            // The header: the curved band behind the logo (Figma "Rectangle
+            // 2691") - the page background with a soft shadow under its curve.
+            '[data-nit-catcards-arc]{position:absolute;top:0;left:50%;transform:translateX(-50%);',
+            'width:min(1444px,100%);height:clamp(200px,24vw,338px);overflow:visible;pointer-events:none;z-index:0;',
+            'filter:drop-shadow(0 4px 11px rgba(0,0,0,.55))}',
+            'html.nit-mode-light [data-nit-catcards-arc]{filter:drop-shadow(0 4px 11px rgba(0,0,0,.14))}',
+            '[data-nit-catcards-arc] path{fill:var(--nit-brand-background)}',
+            '[data-nit-catcards-brand]{height:clamp(96px,13.7vw,197px);width:auto;max-width:100%;object-fit:contain}',
+
+            // The corner controls - same look and contract as the hero block's
+            // (data-nit-hero-tool), so both blocks can share a page.
+            '[data-nit-hero-tool]{transition:background-color .2s ease,color .2s ease,border-color .2s ease}',
+            '[data-nit-hero-tool]:hover,[data-nit-hero-tool]:focus-visible{background:var(--nit-brand-hoverbackground)!important;',
+            'color:var(--nit-brand-hovertext)!important;border-color:var(--nit-brand-hoverbackground)!important;text-decoration:none}',
+            '[data-nit-hero-tool]:focus-visible{outline:2px solid var(--nit-brand-accent);outline-offset:2px}',
+            '[data-nit-hero-mode] .nit-mode-icon{display:none!important}',
+            '[data-nit-hero-mode][data-nit-mode="light"] .nit-mode-icon-dark,',
+            '[data-nit-hero-mode][data-nit-mode="dark"] .nit-mode-icon-light{display:block!important}',
+            '@media (max-width:767px){[data-nit-catcards-tools]{top:12px!important}}'
         ].join('');
         var st = document.createElement('style');
         st.id = STYLE_ID;
@@ -145,7 +164,6 @@
 
         var name = document.createElement('span');
         name.className = 'nit-cc-name';
-        name.setAttribute('dir', 'auto');
         name.textContent = cat.name || '';
         body.appendChild(name);
 
@@ -158,6 +176,20 @@
             return;
         }
         section.setAttribute('data-nit-catcards-done', '1');
+
+        // Direction follows the INTERFACE language, never the text: Arabic
+        // starts every card on the right, English on the left, whatever
+        // language a category name happens to be written in.
+        section.setAttribute('dir', document.documentElement.getAttribute('dir') === 'rtl' ? 'rtl' : 'ltr');
+
+        // The big logo: the site's wide lock-up. data-nit-logo="full" lets the
+        // theme's light/dark switch swap it with the navbar's mark.
+        var brand = window.NIT_LOGO_FULL || window.NIT_LOGO;
+        if (typeof brand === 'string' && brand) {
+            section.querySelectorAll('[data-nit-catcards-brand]').forEach(function(img) {
+                img.src = brand;
+            });
+        }
 
         var grid = section.querySelector('[data-nit-catcards-grid]');
         if (!grid) {
