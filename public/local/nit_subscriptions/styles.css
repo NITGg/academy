@@ -152,7 +152,9 @@
     font-size: clamp(24px, 2.6vw, 30px);
     font-weight: 500;
     line-height: 1.2;
-    color: var(--ctext3);
+    /* Figma paints both values in the Main role — the same colour as the subscribe button —
+       not Accent text, which most dark groups author near-white. */
+    color: var(--cbg4);
 }
 
 /* ── Price card ────────────────────────────────────────────────────────────────── */

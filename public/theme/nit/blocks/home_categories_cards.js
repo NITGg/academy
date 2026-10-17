@@ -11,13 +11,13 @@
  *   logolight  the category logo for light mode (Change style tab)
  *   logodark   the category logo for dark mode
  *   name, url
- * A category with no logo for a mode falls back to the SITE logo for that
- * mode, so the card never shows a white mark on a white scrim.
- *
- * Colours: --nit-brand-* only. The scrim is the page background at 66%, the
- * text is the primary text colour, so the light/dark switch (a class on the
- * html element) repaints the cards with no script. Both logo variants are in
- * the card and CSS shows the one for the current mode.
+ * THE CARD IS DARK IN BOTH MODES, as in the Figma light frame: only the page
+ * around it turns light. A photo needs a dark scrim for white text to read on
+ * it, so the scrim (--nit-cc-scrim, black at 66%) and the ink (--nit-cc-ink,
+ * white) are the card's own and do not follow the light/dark switch, and the
+ * card always draws the dark-mode logo (white bars) - a category with none
+ * falls back to the site's dark-mode logo. Everything AROUND the cards (page,
+ * heading, hover border in the category colour) still reads the palette.
  *
  * Options on the [data-nit-catcards] element:
  *   data-ids    comma list of category ids, drawn in that order (empty = all)
@@ -34,8 +34,8 @@
         if (document.getElementById(STYLE_ID)) {
             return;
         }
-        var scrimStrong = 'color-mix(in srgb, var(--nit-brand-background) 66%, transparent)';
-        var scrimSoft = 'color-mix(in srgb, var(--nit-brand-background) 48%, transparent)';
+        var scrimStrong = 'var(--nit-cc-scrim)';
+        var scrimSoft = 'var(--nit-cc-scrim-soft)';
         var css = [
             '.nit-cc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:25px 32px;',
             'width:100%;max-width:1264px;margin:0 auto}',
@@ -44,7 +44,8 @@
 
             '.nit-cc-card{position:relative;display:block;aspect-ratio:400/250;border-radius:12px;',
             'overflow:hidden;isolation:isolate;container-type:inline-size;',
-            'background:var(--nit-brand-surface);color:var(--nit-brand-textprimary)!important;',
+            '--nit-cc-scrim:rgba(0,0,0,.66);--nit-cc-scrim-soft:rgba(0,0,0,.5);--nit-cc-ink:#fff;',
+            'background:#1a1a1a;color:var(--nit-cc-ink)!important;',
             'text-decoration:none!important}',
             '.nit-cc-card:focus-visible{outline:3px solid var(--nit-brand-accent);outline-offset:3px}',
 
@@ -80,7 +81,7 @@
             // The logo box: 40px wide with 6px either side, and the rule on its
             // end edge - the "|" between the mark and the name.
             '.nit-cc-mark{flex:0 0 auto;box-sizing:border-box;width:clamp(32px,10cqi,40px);padding:0 6px;',
-            'border-inline-end:1px solid var(--nit-brand-textprimary)}',
+            'border-inline-end:1px solid var(--nit-cc-ink)}',
             '.nit-cc-markbox{position:relative;display:block;width:100%;aspect-ratio:1114/872;overflow:hidden}',
             '.nit-cc-logo{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:contain}',
             // A category logo is the full lock-up on the shared 958x308 logo
@@ -101,7 +102,7 @@
             '.nit-cc-name{position:relative;top:-0.35em;',
             'display:block;flex:0 1 auto;min-width:0;margin:0;max-width:72cqi;',
             'font-size:clamp(16px,5.5cqi,22px);line-height:1.364;font-weight:600;',
-            'color:var(--nit-brand-textprimary);text-align:start;overflow-wrap:anywhere}',
+            'color:var(--nit-cc-ink);text-align:start;overflow-wrap:anywhere}',
             '.nit-cc-line{display:block}',
 
             '@media (prefers-reduced-motion:reduce){.nit-cc-card::after{transition:none}}',
@@ -207,7 +208,8 @@
         var body = document.createElement('span');
         body.className = 'nit-cc-body';
 
-        var light = cat.logolight || siteLogo('light');
+        // The card is dark in both modes, so it always wears the dark-mode
+        // logo (white bars); the light one would vanish into the scrim.
         var dark = cat.logodark || siteLogo('dark');
         var mark = document.createElement('span');
         mark.className = 'nit-cc-mark';
@@ -217,15 +219,8 @@
             // The category's own icon (local_nit_category "Category icon" tab):
             // the mark already cut out as a picture of its own, drawn whole.
             box.appendChild(logoImg(cat.iconurl, '', false));
-        } else if (light && light === dark) {
-            box.appendChild(logoImg(light, '', !!cat.logolight));
-        } else {
-            if (light) {
-                box.appendChild(logoImg(light, 'light', !!cat.logolight));
-            }
-            if (dark) {
-                box.appendChild(logoImg(dark, 'dark', !!cat.logodark));
-            }
+        } else if (dark) {
+            box.appendChild(logoImg(dark, '', !!cat.logodark));
         }
         if (box.firstChild) {
             mark.appendChild(box);

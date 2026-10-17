@@ -257,6 +257,32 @@ if (file_exists($themenitlib)) {
     require_once($themenitlib);
 }
 
+// The hero's three buttons may wear their own colours, apart from the rest of the
+// group: theme_nit config `nit_hero_buttons` = {"g6": {"primary": "#3e8541", …}, …},
+// written by theme/nit/cli/apply_figma_palette.php --hero. Each group's set re-declares
+// the --nit-brand-* button roles on .nit-hero__btns only, keyed on the group's <html>
+// class, so the light/dark switch still moves between the category's two sets. No row
+// (or --hero-remove) means the hero buttons follow the group like every other button.
+$herobtncss = '';
+$herobtns = json_decode((string) get_config('theme_nit', 'nit_hero_buttons'), true);
+if (is_array($herobtns) && function_exists('theme_nit_brand_group_class')) {
+    foreach ($herobtns as $gkey => $roles) {
+        $groupclass = theme_nit_brand_group_class((string) $gkey);
+        if ($groupclass === '' || !is_array($roles)) {
+            continue;
+        }
+        $decl = '';
+        foreach ($roles as $role => $hex) {
+            if (preg_match('/^[a-z0-9]+$/', (string) $role) && preg_match('/^#[0-9a-fA-F]{6}$/', (string) $hex)) {
+                $decl .= "--nit-brand-{$role}: {$hex}; ";
+            }
+        }
+        if ($decl !== '') {
+            $herobtncss .= "html.{$groupclass} .nit-hero__btns { {$decl}}\n";
+        }
+    }
+}
+
 // Bilingual inline helper (site is en/ar); mirrors the theme's {mlang} pairs.
 $isar = (strpos(current_language(), 'ar') === 0);
 $t = function (string $en, string $ar) use ($isar) {
@@ -633,6 +659,7 @@ echo $OUTPUT->header();
       font-size: 18px; font-weight: 500;
     }
     .nit-hero__btns .btn-outline-primary { border-width: 2px; padding: 11px 31px; }
+<?= $herobtncss ?>
   </style>
   <div class="nit-hero<?= $hasrealimage ? ' nit-hero--art' : '' ?>" dir="<?= $isar ? 'rtl' : 'ltr' ?>">
     <?php if ($hasrealimage): ?>

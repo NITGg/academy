@@ -61,9 +61,11 @@ require_once($CFG->libdir . '/clilib.php');
 require_once($CFG->dirroot . '/theme/nit/lib.php');
 
 list($options, $unrecognised) = cli_get_params([
-    'apply'   => false,
-    'restore' => '',
-    'help'    => false,
+    'apply'       => false,
+    'restore'     => '',
+    'hero'        => false,
+    'hero-remove' => false,
+    'help'        => false,
 ], ['a' => 'apply', 'r' => 'restore', 'h' => 'help']);
 
 if ($unrecognised) {
@@ -76,6 +78,9 @@ if ($options['help']) {
   (no option)      dry run — list every colour that would change
   --apply          write a backup, then apply the palette
   --restore=FILE   put a backup back; FILE '-' reads it from standard input
+  --hero           give ONLY the category hero buttons the Figma colours
+                   (one row, nit_hero_buttons; the groups are not touched)
+  --hero-remove    drop that row: hero buttons follow their group again
   --help           this text
 ");
     exit(0);
@@ -264,6 +269,33 @@ foreach (array_keys($target) as $name) {
     if (!array_key_exists($role, $knownroles)) {
         unset($target[$name]);
     }
+}
+
+// --hero / --hero-remove: only the category hero's three buttons (read by
+// local/nit_category/index.php), never the groups themselves.
+if ($options['hero-remove']) {
+    unset_config('nit_hero_buttons', 'theme_nit');
+    cli_writeln('Hero buttons follow their group again.');
+    exit(0);
+}
+if ($options['hero']) {
+    $buttonroles = ['primary', 'onprimary', 'btnprimaryborder', 'btnprimaryhoverbg', 'btnprimaryhovertext',
+        'btnprimaryhoverborder', 'btnoutlineprimarytext', 'btnoutlineprimaryborder', 'btnoutlineprimaryhoverbg',
+        'btnoutlineprimaryhovertext', 'btnoutlineprimaryhoverborder'];
+    $hero = [];
+    foreach ($academies as $a) {
+        foreach (['light', 'dark'] as $scheme) {
+            foreach ($buttonroles as $role) {
+                $name = 'brandcolour_' . $a[$scheme] . '_' . $role;
+                if (isset($target[$name])) {
+                    $hero[$a[$scheme]][$role] = $target[$name];
+                }
+            }
+        }
+    }
+    set_config('nit_hero_buttons', json_encode($hero), 'theme_nit');
+    cli_writeln('Hero buttons set for ' . count($hero) . ' groups: ' . implode(', ', array_keys($hero)));
+    exit(0);
 }
 
 // Category → group maps, merged into what is there.
