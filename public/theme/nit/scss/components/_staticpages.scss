@@ -1169,6 +1169,16 @@ body.dir-rtl .nit-staticpage.nit-staticpage--about {
         }
     }
 
+    // Bootstrap's reboot pins email and tel boxes to LTR, which put the Arabic
+    // placeholder on the wrong side. Follow the page instead, and let the text
+    // pick its own direction so a typed "+20 …" or an address still reads LTR.
+    .nit-contact-input[type="email"],
+    .nit-contact-input[type="tel"] {
+        direction: inherit;
+        unicode-bidi: plaintext;
+        text-align: start;
+    }
+
     textarea.nit-contact-input {
         min-height: 9.5rem;
         resize: vertical;

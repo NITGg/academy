@@ -240,9 +240,10 @@ class discount_manager {
             if (!class_exists('\local_nit_subscriptions\subscription_manager')) {
                 return false;
             }
-            // A plan with no categories of its own belongs to the whole catalogue, so an
-            // "all categories" row covers it; a row naming one category does not.
-            return \local_nit_subscriptions\subscription_manager::matches_category($itemid, $rowcategoryid);
+            // A plan is covered when its own category sits inside the row's — the plans "of"
+            // that category. An "all categories" row covers every plan.
+            return $rowcategoryid === 0
+                || \local_nit_subscriptions\subscription_manager::within_category($itemid, $rowcategoryid);
         }
         // Packages and programs carry no category of their own; only an "all categories" row
         // can reach them, and even that is a stretch, so it does not.
@@ -268,11 +269,17 @@ class discount_manager {
      *
      * A category id of 0 means "no category in particular" (the home page), which shows the lot.
      *
+     * $subtreeonly narrows the first rule from the category's branch to its subtree: the item is
+     * shown on its category's page and the pages beneath it, but not on a parent's page. Coupons
+     * ask for that (each coupon belongs to one category and its subcategories); offers keep the
+     * branch.
+     *
      * @param array $items rows each with ->item_type and ->item_id
      * @param int $categoryid the category page being rendered, 0 for none
+     * @param bool $subtreeonly category rows match only on their own subtree
      * @return bool
      */
-    public static function matches_category(array $items, $categoryid) {
+    public static function matches_category(array $items, $categoryid, $subtreeonly = false) {
         $categoryid = (int) $categoryid;
         if ($categoryid <= 0) {
             return true;
@@ -286,7 +293,13 @@ class discount_manager {
         }
         if ($categoryrows) {
             foreach ($categoryrows as $rowid) {
-                if ($rowid === 0 || in_array($rowid, \local_nit_core\helper\category::branch($categoryid), true)) {
+                if ($rowid === 0) {
+                    return true;
+                }
+                $inside = $subtreeonly
+                    ? \local_nit_core\helper\category::is_within($categoryid, $rowid)
+                    : in_array($rowid, \local_nit_core\helper\category::branch($categoryid), true);
+                if ($inside) {
                     return true;
                 }
             }

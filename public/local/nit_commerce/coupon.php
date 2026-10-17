@@ -44,7 +44,13 @@ if (!empty($CFG->forcelogin)) {
 
 $id = required_param('id', PARAM_INT);
 
-$context = context_system::instance();
+// The page is drawn in its coupon's category style — palette, buttons, navbar logo — exactly like
+// the category page that advertised it. theme_nit reads the category off a CONTEXT_COURSECAT page
+// context, so that is the context this page runs in. Read straight from the scope rows, because
+// the formatted coupon below cannot be built before a context is set.
+$coupcat = coupon_manager::category_of(array_values($DB->get_records('nit_coupon_item', ['couponid' => $id])));
+$context = $coupcat ? context_coursecat::instance($coupcat, IGNORE_MISSING) : null;
+$context = $context ?: context_system::instance();
 $pageurl = new moodle_url('/local/nit_commerce/coupon.php', ['id' => $id]);
 $PAGE->set_url($pageurl);
 $PAGE->set_context($context);
@@ -160,9 +166,25 @@ $plancard = function (int $planid, string $fallbackname) use ($planfeed): array 
     ];
 };
 
+// With a category, every other row narrows INSIDE it (discount_manager::scope_matches()): "All
+// courses" is all of the category's courses, "All subscriptions" all of its plans, and when
+// anything narrows, the category's own group must not list its whole subtree as if all of it
+// were covered.
+$categoryname = $coupcat ? \local_nit_core\helper\category::name($coupcat) : '';
+$narrowed = false;
+foreach ($coupon['applies_to'] as $scope) {
+    if ((string) $scope['item_type'] !== 'category') {
+        $narrowed = true;
+    }
+}
+
 foreach ($coupon['applies_to'] as $scope) {
     $type = (string) $scope['item_type'];
     $itemid = (int) $scope['item_id'];
+    if ($coupcat && $itemid === 0 && ($type === 'course' || $type === 'subscription')) {
+        $scope['label'] = get_string($type === 'course' ? 'cpn_allcourses_in' : 'cpn_allplans_in',
+            'local_nit_commerce', $categoryname);
+    }
 
     $group = [
         'label'    => (string) $scope['label'],
@@ -182,15 +204,20 @@ foreach ($coupon['applies_to'] as $scope) {
         $group['link'] = new moodle_url('/course/view.php', ['id' => $course->id]);
         $group['linktext'] = get_string('cpn_open_course', 'local_nit_commerce');
 
+    } else if ($type === 'course' && $itemid === 0 && $coupcat) {
+        $group['link'] = new moodle_url('/local/nit_category/index.php', ['id' => $coupcat]);
+        $group['linktext'] = get_string('cpn_open_category', 'local_nit_commerce');
+
     } else if ($type === 'course' && $itemid === 0) {
         $group['link'] = new moodle_url('/local/nit_category/catalogue.php');
         $group['linktext'] = get_string('cpn_browse_all', 'local_nit_commerce');
 
     } else if ($type === 'category' && $itemid > 0) {
-        // A category covers everything filed beneath it, so the group lists the courses of the
-        // whole subtree — the same set the coupon would actually be accepted on — and links to
-        // the category page rather than to any one course.
-        foreach (\local_nit_core\helper\category::subtree($itemid) as $catid) {
+        // A category alone covers everything filed beneath it, so the group lists the courses of
+        // the whole subtree — the same set the coupon would actually be accepted on — and links
+        // to the category page rather than to any one course. Narrowed by other rows, it is
+        // only the heading and the link; the rows themselves say what is covered.
+        foreach ($narrowed ? [] : \local_nit_core\helper\category::subtree($itemid) as $catid) {
             foreach ($DB->get_records('course', ['category' => $catid], 'fullname ASC', 'id') as $row) {
                 $course = $visiblecourse((int) $row->id);
                 if ($course) {
@@ -222,6 +249,9 @@ foreach ($coupon['applies_to'] as $scope) {
         // unlike "every course on the site".
         foreach (\local_nit_subscriptions\subscription_manager::get_subscriptions(
                 \local_nit_subscriptions\subscription_manager::STATUS_ACTIVE) as $plan) {
+            if ($coupcat && !\local_nit_subscriptions\subscription_manager::within_category((int) $plan->id, $coupcat)) {
+                continue;   // Only the plans of the coupon's category.
+            }
             $group['plans'][] = $plancard((int) $plan->id,
                 format_string(\local_nit_subscriptions\subscription_manager::resolve_mlang($plan->name)));
         }

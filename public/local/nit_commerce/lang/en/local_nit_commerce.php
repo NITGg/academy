@@ -104,6 +104,17 @@ $string['cpn_deleted']     = 'Coupon deleted';
 $string['cpn_confirm_delete'] = 'Delete this coupon? This cannot be undone.';
 $string['cpn_edit_titled']    = 'Edit coupon {$a}';
 $string['cpn_scope_required'] = 'Select at least one applicable item.';
+// Every coupon belongs to exactly one category.
+$string['cpn_field_category']   = 'Category';
+$string['cpn_category_help']    = 'The category this coupon belongs to. It is advertised only on this category\'s page and on the pages of the categories beneath it, and it can be spent only on what sits under it.';
+$string['cpn_category_choose']  = '— Choose a category —';
+$string['cpn_within_help']      = 'Narrow it inside the category (optional). Leave both unticked and the coupon covers every course and every subscription of the category.';
+$string['cpn_scope_allincat']   = 'All in this category';
+$string['cpn_scope_nonein']     = 'Nothing of this kind in the chosen category.';
+$string['cpn_allcourses_in']    = 'All courses in {$a}';
+$string['cpn_allplans_in']      = 'All subscriptions in {$a}';
+$string['err_cpncategoryrequired']    = 'Choose the one category this coupon belongs to.';
+$string['err_cpnitemoutsidecategory'] = '"{$a->item}" is not under {$a->category}, so this coupon cannot apply to it.';
 $string['cpn_unlimited']      = 'Unlimited';
 $string['cpn_used_count']     = 'Used {$a}';
 

@@ -202,7 +202,10 @@ class category {
      * Includes hidden categories and categories with no courses of their own: a parent that
      * only holds subcategories is exactly the one an admin wants to scope a plan to.
      *
-     * @return array[] one row per category: ['id' => int, 'name' => string, 'depth' => int]
+     * `path` ("/1/5/12") lets a picker narrow a second list to one category's subtree without
+     * another round trip: a category is inside X when its path is X's or starts with X's + "/".
+     *
+     * @return array[] one row per category: ['id' => int, 'name' => string, 'depth' => int, 'path' => string]
      */
     public static function options(): array {
         $out = [];
@@ -212,6 +215,7 @@ class category {
                 'id'    => (int) $row->id,
                 'name'  => str_repeat('— ', $depth) . format_string($row->name),
                 'depth' => $depth,
+                'path'  => (string) $row->path,
             ];
         }
         return $out;

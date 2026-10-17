@@ -159,6 +159,16 @@ $string['sub_categories_help']   = 'Which course-category pages show this plan. 
 $string['sub_categories_allopt'] = 'All categories';
 $string['sub_categories_auto']   = 'From its courses';
 $string['sub_categories_clear']  = 'Clear selection (back to automatic)';
+// Every plan now belongs to exactly one category (the strings above describe the old
+// many-or-automatic placement and are kept only for plans saved before it).
+$string['sub_col_category']      = 'Category';
+$string['sub_field_category']    = 'Category';
+$string['sub_category_help']     = 'The category this plan belongs to. It is shown only on this category\'s page and on the pages of the categories beneath it, and it can unlock only courses that sit under it. Moving a plan to another category removes the courses that are not under the new one.';
+$string['sub_category_choose']   = '— Choose a category —';
+$string['sub_category_notset']   = 'Not set — edit the plan to choose one';
+$string['sub_ca_scope']          = 'Only courses under {$a} can be added to this plan.';
+$string['sub_ca_noscope']        = 'This plan has no category yet, so every course is listed. Edit the plan and choose its category to narrow this list.';
+$string['sub_updated_pruned']    = 'Subscription updated. {$a} course(s) outside its category were removed from it.';
 $string['sub_col_subscription'] = 'Subscription';
 $string['sub_field_desc']     = 'Description (optional)';
 $string['sub_field_days']     = 'Number of days';
@@ -231,6 +241,8 @@ $string['err_currency']         = 'Please choose a valid currency';
 $string['err_durationpositive'] = 'Number of days must be greater than zero';
 $string['err_subnotfound']      = 'Subscription not found';
 $string['err_subhaspurchases']  = 'This subscription has purchase records and cannot be deleted. Deactivate it instead.';
+$string['err_subcategoryrequired']   = 'Choose the one category this subscription belongs to.';
+$string['err_courseoutsidecategory'] = '"{$a->course}" is not under {$a->category}, so this subscription cannot unlock it.';
 $string['err_coursenotfound']   = 'Course not found';
 $string['err_seatspositive']    = 'Number of seats must be greater than zero';
 $string['err_discountrange']    = 'Discount percentage must be between 0 and 100';

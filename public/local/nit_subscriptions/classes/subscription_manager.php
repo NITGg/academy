@@ -73,6 +73,9 @@ class subscription_manager {
             throw new \moodle_exception('err_durationpositive', 'local_nit_subscriptions');
         }
         $b2benabled = !empty($data['b2b_enabled']) ? 1 : 0;
+        // Every plan lives in exactly one category (and the categories beneath it); refuse a
+        // plan without one before anything is written.
+        $categoryid = self::normalize_category($data['categories'] ?? array());
 
         $now = time();
         $record = new \stdClass();
@@ -102,11 +105,9 @@ class subscription_manager {
         }
         // The home country's row — the only per-country row a plan has.
         self::replace_prices($id, [$pricing['home']], $userid);
-        // Which category pages advertise the plan. Absent means "derive it from the courses",
-        // which is what a plan created without touching the field should do.
-        if (array_key_exists('categories', $data)) {
-            self::save_categories($id, (array) $data['categories'], $userid);
-        }
+        // The one category the plan belongs to: its page (and its subcategories' pages)
+        // advertise the plan, and only courses under it can be unlocked by it.
+        self::save_categories($id, array($categoryid), $userid);
         return $id;
     }
 
@@ -120,12 +121,14 @@ class subscription_manager {
      * @param array $data subset of: name, description, price, currency, home_price, home_currency,
      *                    duration_days, status, b2b_enabled, seat_options, categories
      * @param int $userid admin performing the action
-     * @return void
+     * @return array ['pruned' => int] courses dropped because they sit outside the plan's category
      */
     public static function update_subscription($id, array $data, $userid) {
         global $DB;
 
         $sub = self::get_subscription($id); // Throws if missing.
+        $categoryid = array_key_exists('categories', $data)
+            ? self::normalize_category($data['categories']) : 0;
 
         $update = new \stdClass();
         $update->id = $sub->id;
@@ -191,11 +194,15 @@ class subscription_manager {
             self::replace_prices($sub->id, [$pricing['home']], $userid);
         }
 
-        // Category placement. Replace-on-save like the prices above, so clearing the field in
-        // the form really does hand placement back to the plan's courses.
-        if (array_key_exists('categories', $data)) {
-            self::save_categories($sub->id, (array) $data['categories'], $userid);
+        // Category placement. A plan moved to another category keeps only the courses that
+        // live under the new one: "this plan unlocks a course outside its category" is the one
+        // state the rule exists to rule out.
+        $pruned = 0;
+        if ($categoryid > 0) {
+            self::save_categories($sub->id, array($categoryid), $userid);
+            $pruned = self::prune_courses_outside_category($sub->id);
         }
+        return array('pruned' => $pruned);
     }
 
     /**
@@ -810,6 +817,25 @@ class subscription_manager {
         global $DB;
         self::get_subscription($subscriptionid); // Validate.
 
+        // A plan with a category unlocks only courses under it. Refused rather than silently
+        // dropped, so an admin never saves a list and gets a different one back.
+        $categoryid = self::category_of($subscriptionid);
+        if ($categoryid > 0) {
+            foreach ($courseids as $cid) {
+                $cid = (int) $cid;
+                if ($cid <= 0) {
+                    continue;
+                }
+                $coursecat = \local_nit_core\helper\category::of_course($cid);
+                if ($coursecat > 0 && !\local_nit_core\helper\category::is_within($coursecat, $categoryid)) {
+                    throw new \moodle_exception('err_courseoutsidecategory', 'local_nit_subscriptions', '', (object) array(
+                        'course'   => format_string((string) $DB->get_field('course', 'fullname', array('id' => $cid))),
+                        'category' => \local_nit_core\helper\category::name($categoryid),
+                    ));
+                }
+            }
+        }
+
         $now = time();
         $transaction = $DB->start_delegated_transaction();
 
@@ -903,15 +929,15 @@ class subscription_manager {
     /**
      * Whether a plan belongs on a given category's landing page.
      *
-     * With categories assigned, the plan appears on those branches — "assigned to Programming"
-     * covers the Programming page and every page beneath it, and the pages ABOVE it too, because
-     * a parent page lists the courses of its children and a plan covering them belongs there.
-     * That is what {@see \local_nit_core\helper\category::branch()} means. Siblings are excluded.
+     * A plan belongs to ONE category and is shown on that category's page and on the page of
+     * every category beneath it — never on a parent's page and never on a sibling's. "Assigned
+     * to Programming" covers Programming and Programming / Web, and nothing else.
      *
-     * With nothing assigned the plan is placed by the courses it unlocks, which is the answer an
-     * admin would have given by hand: a plan of nothing but Programming courses is a Programming
-     * plan. A plan that unlocks NO courses yet has nothing to derive from, so it is shown
-     * everywhere rather than nowhere — an unfinished plan should be visible enough to be noticed.
+     * Plans saved before that rule may still carry no assignment, or the "all categories" row.
+     * They keep their old placement until an admin next saves them: [0] is shown everywhere,
+     * and nothing assigned is placed by the courses the plan unlocks (a plan of nothing but
+     * Programming courses is a Programming plan; a plan with no courses yet is shown everywhere
+     * rather than nowhere, so an unfinished one is noticed).
      *
      * @param int $subscriptionid
      * @param int $categoryid 0 = no category in particular (the home page), which matches everything
@@ -924,21 +950,141 @@ class subscription_manager {
         }
 
         $assigned = self::get_categories($subscriptionid);
-        $branch = \local_nit_core\helper\category::branch($categoryid);
-
         if ($assigned) {
             if (in_array(0, $assigned, true)) {
                 return true;
             }
-            return (bool) array_intersect($assigned, $branch);
+            foreach ($assigned as $rootid) {
+                if (\local_nit_core\helper\category::is_within($categoryid, $rootid)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
+        $branch = \local_nit_core\helper\category::branch($categoryid);
         $coursecats = \local_nit_core\helper\category::of_courses(
             self::courses_for_subscription($subscriptionid));
         if (!$coursecats) {
             return true;
         }
         return (bool) array_intersect($coursecats, $branch);
+    }
+
+    /**
+     * The one category a plan belongs to, or 0 when it has none (a plan saved before every
+     * plan needed one, or the legacy "all categories" row).
+     *
+     * @param int $subscriptionid
+     * @return int
+     */
+    public static function category_of($subscriptionid) {
+        foreach (self::get_categories($subscriptionid) as $catid) {
+            if ($catid > 0 && \local_nit_core\helper\category::exists($catid)) {
+                return $catid;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Whether a plan sits inside a category's subtree — what a coupon scoped to that category
+     * may be spent on.
+     *
+     * A plan with a category of its own is inside when that category is. A legacy plan with no
+     * category is inside only when every course it unlocks is; the legacy "all categories" plan
+     * belongs to no one category, so it is inside none.
+     *
+     * @param int $subscriptionid
+     * @param int $rootid the category; 0 = the whole catalogue, which holds every plan
+     * @return bool
+     */
+    public static function within_category($subscriptionid, $rootid) {
+        $rootid = (int) $rootid;
+        if ($rootid <= 0) {
+            return true;
+        }
+        $own = self::category_of($subscriptionid);
+        if ($own > 0) {
+            return \local_nit_core\helper\category::is_within($own, $rootid);
+        }
+        if (in_array(0, self::get_categories($subscriptionid), true)) {
+            return false;
+        }
+        $coursecats = \local_nit_core\helper\category::of_courses(self::courses_for_subscription($subscriptionid));
+        if (!$coursecats) {
+            return false;
+        }
+        foreach ($coursecats as $cat) {
+            if (!\local_nit_core\helper\category::is_within((int) $cat, $rootid)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * The category whose style a plan's own page is drawn in.
+     *
+     * Its category when it has one; for a legacy plan, the deepest category that holds every
+     * course it unlocks (so a plan of "Web" and "Mobile" courses is drawn as "Programming").
+     *
+     * @param int $subscriptionid
+     * @return int 0 = none, i.e. the site's own style
+     */
+    public static function display_category($subscriptionid) {
+        $own = self::category_of($subscriptionid);
+        if ($own > 0) {
+            return $own;
+        }
+        $common = null;
+        foreach (\local_nit_core\helper\category::of_courses(self::courses_for_subscription($subscriptionid)) as $cat) {
+            $chain = \local_nit_core\helper\category::ancestry((int) $cat);
+            $common = ($common === null) ? $chain : array_values(array_intersect($chain, $common));
+        }
+        // ancestry() is nearest-first and array_intersect() keeps the first array's order, so
+        // the first survivor is the deepest category every course shares.
+        return $common ? (int) reset($common) : 0;
+    }
+
+    /**
+     * Validate the category a plan is saved with: exactly one, and a real one.
+     *
+     * @param mixed $categories the posted list (the form sends one id, as a one-item list)
+     * @return int
+     */
+    protected static function normalize_category($categories) {
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $categories))));
+        if (count($ids) !== 1 || !\local_nit_core\helper\category::exists($ids[0])) {
+            throw new \moodle_exception('err_subcategoryrequired', 'local_nit_subscriptions');
+        }
+        return $ids[0];
+    }
+
+    /**
+     * Drop every course a plan unlocks that sits outside its category.
+     *
+     * Only the plan's own rows: the "every plan" wildcard rows (subscriptionid 0) belong to no
+     * one plan and are left alone.
+     *
+     * @param int $subscriptionid
+     * @return int how many courses were removed
+     */
+    protected static function prune_courses_outside_category($subscriptionid) {
+        global $DB;
+        $categoryid = self::category_of($subscriptionid);
+        if ($categoryid <= 0) {
+            return 0;
+        }
+        $pruned = 0;
+        foreach ($DB->get_records('nit_course_access', array('subscriptionid' => (int) $subscriptionid)) as $row) {
+            $coursecat = \local_nit_core\helper\category::of_course((int) $row->courseid);
+            if (!\local_nit_core\helper\category::is_within($coursecat, $categoryid)) {
+                $DB->delete_records('nit_course_access', array('id' => $row->id));
+                $pruned++;
+            }
+        }
+        return $pruned;
     }
 
     /**

@@ -74,6 +74,9 @@ $STR = local_nit_subscriptions_string_map(array(
     'sub_ca_catcount',
     'sub_field_categories', 'sub_categories_help', 'sub_categories_allopt', 'sub_categories_clear',
     'sub_categories_auto', 'sub_col_categories',
+    'sub_col_category', 'sub_field_category', 'sub_category_help', 'sub_category_choose',
+    'sub_category_notset', 'sub_ca_scope', 'sub_ca_noscope', 'sub_updated_pruned',
+    'err_subcategoryrequired',
     'err_sessionexpired', 'err_requestfailed',
 ));
 
@@ -109,8 +112,9 @@ echo html_writer::script('window.ACADEMY_SUB = ' . json_encode(array(
     'defaultcurrency' => isset($foreign['USD']) ? 'USD' : (string) key($foreign),
     'currencies'      => $currencies,
     // Every course category, in tree order with children indented — the choices for the plan's
-    // category placement. Server-rendered rather than fetched, because the form needs them
-    // before the admin can open it, and the list is short.
+    // one category, and (through each row's path) the subtree the Course access tab narrows
+    // to. Server-rendered rather than fetched, because the form needs them before the admin
+    // can open it, and the list is short.
     'categories' => \local_nit_core\helper\category::options(),
 )) . ';');
 echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
@@ -157,7 +161,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         <thead>
             <tr>
                 <th><?php echo $STR['pkg_col_id']; ?></th><th><?php echo $STR['pkg_col_name']; ?></th><th><?php echo $STR['pkg_col_price']; ?></th><th><?php echo $STR['sub_col_days']; ?></th>
-                <th class="col-tags"><?php echo $STR['sub_col_courses']; ?></th><th class="col-tags"><?php echo $STR['sub_col_categories']; ?></th><th><?php echo $STR['pkg_col_status']; ?></th><th class="col-tight"><?php echo $STR['pkg_col_actions']; ?></th>
+                <th class="col-tags"><?php echo $STR['sub_col_courses']; ?></th><th class="col-tags"><?php echo $STR['sub_col_category']; ?></th><th><?php echo $STR['pkg_col_status']; ?></th><th class="col-tight"><?php echo $STR['pkg_col_actions']; ?></th>
             </tr>
         </thead>
         <tbody><tr><td colspan="8"><?php echo $STR['ui_loading']; ?></td></tr></tbody>
@@ -221,19 +225,15 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                 <input type="number" class="form-control" id="f-refundfee" min="0" max="100" step="0.01" placeholder="0.00">
                 <small class="text-muted"><?php echo $STR['sub_refundfee_help']; ?></small>
             </div>
-            <!-- ── Which category pages advertise this plan ──
-                 Three answers, and the middle one is the default because it is what an admin
-                 would have typed by hand: nothing selected = work it out from the plan's own
-                 courses. "All categories" is the deliberate override for a site-wide plan. -->
+            <!-- ── The one category this plan belongs to ──
+                 Required. It decides both where the plan is advertised (this category and the
+                 ones beneath it) and which courses it may unlock (only those under it). -->
             <div class="form-group sub-cats-box">
-                <label for="f-categories"><strong><?php echo $STR['sub_field_categories']; ?></strong></label>
-                <p class="text-muted sub-cats-help"><?php echo $STR['sub_categories_help']; ?></p>
-                <select class="form-control" id="f-categories" multiple size="8">
-                    <option value="0"><?php echo $STR['sub_categories_allopt']; ?></option>
+                <label for="f-category"><strong><?php echo $STR['sub_field_category']; ?></strong></label>
+                <p class="text-muted sub-cats-help"><?php echo $STR['sub_category_help']; ?></p>
+                <select class="form-control" id="f-category" required>
+                    <option value=""><?php echo $STR['sub_category_choose']; ?></option>
                 </select>
-                <button type="button" id="f-categories-clear" class="btn btn-sm btn-link px-0">
-                    <?php echo $STR['sub_categories_clear']; ?>
-                </button>
             </div>
 
             <div class="form-check mb-3">
@@ -358,6 +358,15 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         }
         .sub-cats-box .sub-cats-help { font-size: 0.8rem; margin: 0.35rem 0 0.6rem; }
         .sub-cats-box select { height: auto; }
+        /* Which part of the catalogue the picked plan may draw its courses from. */
+        .ca-scopenote {
+            margin: -0.5rem 0 1.25rem; padding: 0.6rem 0.9rem; font-size: 0.9rem;
+            border-inline-start: 3px solid var(--nit-brand-primary); border-radius: 0.4rem;
+            background: color-mix(in srgb, var(--nit-brand-primary) 8%, var(--nit-brand-surface));
+            color: var(--nit-brand-textprimary);
+        }
+        .ca-scopenote.is-warning { border-inline-start-color: var(--nit-brand-warning); }
+        .category-card.ca-outscope { display: none; }
     </style>
 
     <div id="course-selector-area" style="display:none;">
@@ -387,6 +396,7 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
         <div id="ca-empty" class="ca-emptystate"><?php echo $STR['sub_ca_pickplan']; ?></div>
 
         <div id="ca-body" style="display:none;">
+            <div id="ca-scope-note" class="ca-scopenote"></div>
             <div id="categories-container" class="mb-2"></div>
             <p id="ca-nomatch" class="text-muted" style="display:none;"><?php echo $STR['sub_ca_nomatch']; ?></p>
 
@@ -573,20 +583,35 @@ echo html_writer::script(<<<'JS'
 
     var ALL_SUBS = [];
 
-    /* What the "Categories" column says. The three states of the assignment, named:
-       an explicit list, the deliberate "all categories", or nothing chosen — which is
-       not blank but "worked out from the plan's courses", and saying so is the whole
-       point of the column. */
+    /* ── The plan's one category ──────────────────────────────────────────────
+       A plan saved before every plan needed a category may still carry none, the old
+       "all categories" 0, or several; the first real id is the one it is treated as
+       having, and none at all is flagged so the admin knows to edit it. */
+    function catById(id) {
+        return (CFG.categories || []).filter(function (c) { return c.id === id; })[0] || null;
+    }
+    function planCategory(s) {
+        var ids = (s && s.categories) || [];
+        for (var i = 0; i < ids.length; i++) {
+            if (ids[i] > 0 && catById(ids[i])) { return ids[i]; }
+        }
+        return 0;
+    }
+    /* The indent marks are for the picker, not for a table cell or a sentence. */
+    function catName(id) {
+        var hit = catById(id);
+        return hit ? hit.name.replace(/^(?:— )+/, '') : ('#' + id);
+    }
+    /* Is category `id` the category `rootid` or beneath it? Read off the stored paths. */
+    function catWithin(id, rootid) {
+        var c = catById(id), r = catById(rootid);
+        if (!c || !r) { return false; }
+        return c.path === r.path || c.path.indexOf(r.path + '/') === 0;
+    }
     function categoryCell(s) {
-        var ids = s.categories || [];
-        if (!ids.length) { return '<span class="text-muted">' + esc(str('sub_categories_auto')) + '</span>'; }
-        if (ids.indexOf(0) !== -1) { return esc(str('sub_categories_allopt')); }
-        var names = ids.map(function (id) {
-            var hit = (CFG.categories || []).filter(function (c) { return c.id === id; })[0];
-            /* The indent marks are for the picker, not for a table cell. */
-            return hit ? hit.name.replace(/^(?:— )+/, '') : ('#' + id);
-        });
-        return AcademyUI.tagList(names, { more: str('ui_showmore'), less: str('ui_showless') });
+        var id = planCategory(s);
+        if (!id) { return '<span class="text-warning">' + esc(str('sub_category_notset')) + '</span>'; }
+        return esc(catName(id));
     }
 
     function renderSubRows(items) {
@@ -683,19 +708,18 @@ echo html_writer::script(<<<'JS'
         $('f-days').value     = sub ? sub.duration_days : '';
         $('f-refundhours').value = (sub && sub.refund_hours !== null && sub.refund_hours !== undefined) ? sub.refund_hours : '';
         $('f-refundfee').value   = (sub && sub.refund_fee !== null && sub.refund_fee !== undefined) ? sub.refund_fee : '';
-        fillCategories(sub ? sub.categories : []);
+        fillCategory(sub ? planCategory(sub) : 0);
         $('f-active').checked = sub ? (sub.status === 'active') : true;
         $('sub-form-card').style.display = 'block';
     }
     function hideForm() { $('sub-form-card').style.display = 'none'; }
 
-    /* ── Category placement ────────────────────────────────────────────────────
-       The picker is built once from the categories shipped with the page, then
-       re-selected each time the form opens. "All categories" (value 0) is
-       mutually exclusive with the rest: picking it clears the others, and
-       picking any other clears it, because "all plus one" is not a third state. */
+    /* ── Category picker ───────────────────────────────────────────────────────
+       Built once from the categories shipped with the page, then re-selected each
+       time the form opens. A legacy plan with no category opens on the placeholder,
+       so saving it forces the choice. */
     function buildCategoryOptions() {
-        var sel = $('f-categories');
+        var sel = $('f-category');
         if (!sel || sel.getAttribute('data-built')) { return; }
         (CFG.categories || []).forEach(function (cat) {
             var o = document.createElement('option');
@@ -704,44 +728,25 @@ echo html_writer::script(<<<'JS'
             sel.appendChild(o);
         });
         sel.setAttribute('data-built', '1');
-        sel.addEventListener('change', function () {
-            var all = sel.querySelector('option[value="0"]');
-            if (!all) { return; }
-            var others = Array.prototype.filter.call(sel.selectedOptions, function (o) {
-                return o.value !== '0';
-            });
-            if (all.selected && others.length) {
-                /* Whichever the admin just touched wins; the other side is cleared. */
-                if (sel._allwas) { all.selected = false; } else {
-                    others.forEach(function (o) { o.selected = false; });
-                }
-            }
-            sel._allwas = all.selected;
-        });
     }
 
-    function fillCategories(ids) {
+    function fillCategory(id) {
         buildCategoryOptions();
-        var sel = $('f-categories');
-        if (!sel) { return; }
-        var want = (ids || []).map(function (v) { return String(v); });
-        Array.prototype.forEach.call(sel.options, function (o) {
-            o.selected = want.indexOf(o.value) !== -1;
-        });
-        var all = sel.querySelector('option[value="0"]');
-        sel._allwas = !!(all && all.selected);
+        $('f-category').value = id ? String(id) : '';
     }
 
     function collectCategories() {
-        var sel = $('f-categories');
-        if (!sel) { return []; }
-        return Array.prototype.map.call(sel.selectedOptions, function (o) {
-            return parseInt(o.value, 10);
-        });
+        var id = parseInt($('f-category').value, 10);
+        return id > 0 ? [id] : [];
     }
 
     function save() {
         var id = $('f-id').value;
+        if (!collectCategories().length) {
+            msg(str('err_subcategoryrequired'), 'danger');
+            $('f-category').focus();
+            return;
+        }
         var params = {
             name: buildMultilang($('f-name-en').value, $('f-name-ar').value),
             description: buildMultilang($('f-desc-en').value, $('f-desc-ar').value),
@@ -752,8 +757,7 @@ echo html_writer::script(<<<'JS'
             duration_days: $('f-days').value,
             refund_hours: $('f-refundhours').value,
             refund_fee: $('f-refundfee').value,
-            // Always sent, including as an empty list: "[]" is the instruction that clears the
-            // assignment and hands placement back to the plan's courses.
+            // The plan's one category, as a one-item list.
             categories: JSON.stringify(collectCategories())
         };
         var p;
@@ -765,8 +769,14 @@ echo html_writer::script(<<<'JS'
             params.active = $('f-active').checked ? 1 : 0;
             p = api('create_subscription', params, 'POST');
         }
-        p.then(function () {
-            msg(id ? str('sub_updated') : str('sub_created'), 'success');
+        p.then(function (d) {
+            var pruned = (d && d.pruned) ? d.pruned : 0;
+            if (pruned) {
+                /* Not 'success': that one fades after three seconds, and this one matters. */
+                msg(strf('sub_updated_pruned', pruned), 'warning');
+            } else {
+                msg(id ? str('sub_updated') : str('sub_created'), 'success');
+            }
             hideForm();
             loadSubs();
         }).catch(function (e) { msg(e.message, 'danger'); });
@@ -793,7 +803,6 @@ echo html_writer::script(<<<'JS'
     $('sub-refresh').addEventListener('click', loadSubs);
     $('sub-save').addEventListener('click', save);
     $('sub-cancel').addEventListener('click', hideForm);
-    $('f-categories-clear').addEventListener('click', function () { fillCategories([]); });
 
     // ── Course access ──
     // The grid only makes sense against a chosen plan, so everything below keys off
@@ -802,8 +811,25 @@ echo html_writer::script(<<<'JS'
     // what drives the counter, the "unsaved changes" pill and the Save/Reset buttons.
     var SAVED_IDS = null;
 
+    // Only the courses the picked plan may unlock: a category card outside the plan's
+    // category is hidden (.ca-outscope) and none of its boxes count, tick or save.
     function allCheckboxes() {
-        return Array.prototype.slice.call(document.querySelectorAll('.course-checkbox'));
+        return Array.prototype.slice.call(document.querySelectorAll(
+            '#categories-container .category-card:not(.ca-outscope) .course-checkbox'));
+    }
+
+    // Hide every category card outside the plan's category, and say which part of the
+    // catalogue is on offer — or, for a legacy plan with no category, that all of it is.
+    function applyCourseScope(sub) {
+        var root = sub ? planCategory(sub) : 0;
+        document.querySelectorAll('#categories-container .category-card').forEach(function (card) {
+            var catid = parseInt(card.getAttribute('data-cat-id'), 10);
+            card.classList.toggle('ca-outscope', !!root && !catWithin(catid, root));
+        });
+        var note = $('ca-scope-note');
+        if (!sub) { note.textContent = ''; return; }
+        note.textContent = root ? strf('sub_ca_scope', catName(root)) : str('sub_ca_noscope');
+        note.classList.toggle('is-warning', !root);
     }
 
     function checkedIdSet() {
@@ -858,7 +884,7 @@ echo html_writer::script(<<<'JS'
         var q = ($('course-search').value || '').trim().toLowerCase();
         var onlySelected = $('ca-only-selected').checked;
         var shown = 0;
-        document.querySelectorAll('#categories-container .category-card').forEach(function(card) {
+        document.querySelectorAll('#categories-container .category-card:not(.ca-outscope)').forEach(function(card) {
             var visible = 0;
             card.querySelectorAll('.course-chip').forEach(function(chip) {
                 var match = !q || (chip.getAttribute('data-course-name') || '').indexOf(q) !== -1;
@@ -913,6 +939,7 @@ echo html_writer::script(<<<'JS'
         var subId = $('target-subscription').value;
         if (!subId) {
             SAVED_IDS = null;
+            applyCourseScope(null);
             allCheckboxes().forEach(function (cb) { cb.checked = false; });
             $('ca-empty').style.display = '';
             $('ca-body').style.display = 'none';
@@ -920,8 +947,16 @@ echo html_writer::script(<<<'JS'
             return;
         }
         var sub = ALL_SUBS.find(function(s) { return String(s.id) === String(subId); });
+        applyCourseScope(sub);
+        // Only what the plan may still unlock counts as saved: a course outside its category
+        // (left on a plan from before the rule) is not shown, so it must not make the grid
+        // look dirty either. Editing the plan's category is what removes it.
+        var inscope = {};
+        allCheckboxes().forEach(function (cb) { inscope[cb.value] = true; });
         SAVED_IDS = {};
-        ((sub && sub.courses) || []).forEach(function(c) { SAVED_IDS[String(c.id)] = true; });
+        ((sub && sub.courses) || []).forEach(function(c) {
+            if (inscope[String(c.id)]) { SAVED_IDS[String(c.id)] = true; }
+        });
         allCheckboxes().forEach(function(cb) { cb.checked = !!SAVED_IDS[cb.value]; });
         $('ca-empty').style.display = 'none';
         $('ca-body').style.display = '';
@@ -964,7 +999,7 @@ echo html_writer::script(<<<'JS'
     });
 
     function bulkVisible(on) {
-        document.querySelectorAll('.course-chip').forEach(function(chip) {
+        document.querySelectorAll('#categories-container .category-card:not(.ca-outscope) .course-chip').forEach(function(chip) {
             if (chip.style.display !== 'none') { chip.querySelector('.course-checkbox').checked = on; }
         });
         refreshCourseState();
@@ -981,8 +1016,8 @@ echo html_writer::script(<<<'JS'
             return;
         }
         var courseIds = [];
-        document.querySelectorAll('.course-checkbox:checked').forEach(function(cb) {
-            courseIds.push(parseInt(cb.value, 10));
+        allCheckboxes().forEach(function(cb) {
+            if (cb.checked) { courseIds.push(parseInt(cb.value, 10)); }
         });
         api('set_subscription_courses', {
             subscriptionid: subId,

@@ -378,8 +378,15 @@ function nit_commerce_discount_targets(): array {
     }
     $subs = [];
     if ($DB->get_manager()->table_exists('nit_subscription')) {
+        $hassubs = class_exists('\local_nit_subscriptions\subscription_manager');
         foreach ($DB->get_records('nit_subscription', null, 'name ASC', 'id, name') as $s) {
-            $subs[] = ['id' => (int) $s->id, 'name' => format_string($s->name)];
+            $subs[] = [
+                'id' => (int) $s->id,
+                'name' => format_string($s->name),
+                // The plan's own category, so the coupon form can offer only the plans of the
+                // coupon's category. 0 = a legacy plan with none, which no category offers.
+                'category' => $hassubs ? \local_nit_subscriptions\subscription_manager::category_of((int) $s->id) : 0,
+            ];
         }
     }
 

@@ -46,7 +46,13 @@ if (!empty($CFG->forcelogin)) {
 
 $id = required_param('id', PARAM_INT);
 
-$context = context_system::instance();
+// The page is drawn in its plan's category style — palette, buttons, navbar logo — exactly like
+// the category page that advertised it. theme_nit reads the category off a CONTEXT_COURSECAT page
+// context, so that is the context this page runs in; a plan with no category to go by stays in
+// the site's own style.
+$plancat = \local_nit_subscriptions\subscription_manager::display_category($id);
+$context = $plancat ? context_coursecat::instance($plancat, IGNORE_MISSING) : null;
+$context = $context ?: context_system::instance();
 $pageurl = new moodle_url('/local/nit_subscriptions/plan.php', ['id' => $id]);
 $PAGE->set_url($pageurl);
 $PAGE->set_context($context);

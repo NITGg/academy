@@ -129,7 +129,7 @@ try {
             break;
 
         case 'update_subscription':
-            subscription_manager::update_subscription(required_param('id', PARAM_INT), [
+            $result = subscription_manager::update_subscription(required_param('id', PARAM_INT), [
                 'name'          => required_param('name', PARAM_TEXT),
                 'description'   => optional_param('description', '', PARAM_TEXT),
                 'price'         => optional_param('price', '', PARAM_RAW_TRIMMED),
@@ -146,7 +146,9 @@ try {
                 'seat_options'  => nit_subscriptions_seat_options(),
                 'categories'    => nit_subscriptions_categories(),
             ], $USER->id);
-            nit_subscriptions_respond(['status' => 'success', 'data' => []]);
+            // How many courses the save dropped for sitting outside the plan's (new) category,
+            // so the admin is told rather than finding out from the Course access tab.
+            nit_subscriptions_respond(['status' => 'success', 'data' => $result]);
             break;
 
         case 'activate_subscription':
@@ -400,8 +402,8 @@ function nit_subscriptions_seat_options(): array {
 /**
  * Decode the categories JSON parameter into an array of course-category ids.
  *
- * An empty array is a real answer, not a missing one: it clears the plan's assignment and lets
- * its placement be derived from the courses it unlocks. A single 0 means "every category".
+ * The form sends the plan's one category as a one-item list; subscription_manager refuses
+ * anything else (none, several, or the old "every category" 0).
  *
  * @return int[]
  */

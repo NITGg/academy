@@ -53,6 +53,7 @@ class coupon_manager {
         if (self::code_exists($code)) {
             throw new \moodle_exception('err_couponcodetaken', 'local_nit_commerce');
         }
+        self::validate_scope((array) ($data['items'] ?? array()));
         $now = time();
         $record = new \stdClass();
         $record->code           = $code;
@@ -138,12 +139,86 @@ class coupon_manager {
             $update->status = !empty($data['active']) ? self::STATUS_ACTIVE : self::STATUS_INACTIVE;
         }
 
+        // Checked before anything is written, so a refused scope leaves the coupon untouched.
+        if (array_key_exists('items', $data)) {
+            self::validate_scope((array) $data['items']);
+        }
+
         $update->timemodified = time();
         $update->usermodified = $userid;
         $DB->update_record('nit_coupon', $update);
 
         if (array_key_exists('items', $data)) {
             self::save_items($coupon->id, (array)$data['items']);
+        }
+    }
+
+    /**
+     * The coupon's own category: the one category scope row, or 0 for a coupon saved before
+     * every coupon needed one.
+     *
+     * @param array $items scope rows (objects or arrays) with item_type / item_id
+     * @return int
+     */
+    public static function category_of(array $items) {
+        foreach ($items as $it) {
+            $it = (object) $it;
+            if ($it->item_type === discount_manager::TYPE_CATEGORY && (int) $it->item_id > 0
+                    && \local_nit_core\helper\category::exists((int) $it->item_id)) {
+                return (int) $it->item_id;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Refuse a scope that does not fit the one-category rule.
+     *
+     * Exactly one category, and everything else chosen from inside it: courses that sit under
+     * it, and plans of it. "All courses" / "All subscriptions" (item_id 0) read as "all of them
+     * in this category", which is how {@see discount_manager::scope_matches()} applies them.
+     * Packages and programs carry no category, so a coupon cannot name them.
+     *
+     * @param array $items each ['item_type' => …, 'item_id' => …]
+     * @return void
+     */
+    protected static function validate_scope(array $items) {
+        global $DB;
+        $categories = array();
+        foreach ($items as $it) {
+            $it = (array) $it;
+            if (discount_manager::normalize_item_type($it['item_type'] ?? '') === discount_manager::TYPE_CATEGORY) {
+                $categories[(int) ($it['item_id'] ?? 0)] = true;
+            }
+        }
+        $categoryid = (count($categories) === 1) ? (int) key($categories) : 0;
+        if ($categoryid <= 0 || !\local_nit_core\helper\category::exists($categoryid)) {
+            throw new \moodle_exception('err_cpncategoryrequired', 'local_nit_commerce');
+        }
+
+        $hassubs = class_exists('\local_nit_subscriptions\subscription_manager');
+        foreach ($items as $it) {
+            $it = (array) $it;
+            $type = discount_manager::normalize_item_type($it['item_type'] ?? '');
+            $iid = (int) ($it['item_id'] ?? 0);
+            if ($type === discount_manager::TYPE_CATEGORY) {
+                continue;
+            }
+            if ($type !== discount_manager::TYPE_COURSE && $type !== discount_manager::TYPE_SUBSCRIPTION) {
+                throw new \moodle_exception('err_itemtype', 'local_nit_commerce');
+            }
+            if ($iid === 0) {
+                continue;
+            }
+            $inside = ($type === discount_manager::TYPE_COURSE)
+                ? \local_nit_core\helper\category::is_within(\local_nit_core\helper\category::of_course($iid), $categoryid)
+                : ($hassubs && \local_nit_subscriptions\subscription_manager::within_category($iid, $categoryid));
+            if (!$inside) {
+                throw new \moodle_exception('err_cpnitemoutsidecategory', 'local_nit_commerce', '', (object) array(
+                    'item'     => discount_manager::item_label($type, $iid),
+                    'category' => \local_nit_core\helper\category::name($categoryid),
+                ));
+            }
         }
     }
 
@@ -277,10 +352,11 @@ class coupon_manager {
             $userused = (int) ($usedbyuser[$r->id] ?? 0);
             if ((int)$r->user_limit > 0 && $userused >= (int)$r->user_limit) { continue; }
 
-            // On a category page, only the coupons that belong to that branch.
+            // On a category page, only the coupons of that category or of one above it — a
+            // coupon belongs to its category and the categories beneath it, never to a parent.
             if ((int) $categoryid > 0) {
                 $items = $DB->get_records('nit_coupon_item', array('couponid' => $r->id));
-                if (!discount_manager::matches_category($items, (int) $categoryid)) {
+                if (!discount_manager::matches_category($items, (int) $categoryid, true)) {
                     continue;
                 }
             }

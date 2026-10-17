@@ -60,6 +60,8 @@ $STR = local_nit_commerce_string_map(array(
     'cpn_used_count', 'cpn_limit_min_hint', 'err_usagelimitbelowused',
     'cpn_help_name', 'cpn_help_desc', 'cpn_help_code', 'cpn_help_value',
     'cpn_help_limit', 'cpn_help_userlimit', 'cpn_help_start', 'cpn_help_end', 'cpn_help_active',
+    'cpn_field_category', 'cpn_category_help', 'cpn_category_choose', 'cpn_within_help',
+    'cpn_scope_allincat', 'cpn_scope_nonein', 'err_cpncategoryrequired',
     'err_sessionexpired', 'err_requestfailed',
 ));
 echo html_writer::script('window.ACADEMY_CFG = ' . json_encode(array(
@@ -184,13 +186,20 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
             </div>
 
             <label class="d-block"><strong><?php echo $STR['cpn_field_scope']; ?></strong></label>
-            <p class="text-muted small mb-1"><?php echo $STR['cpn_scope_categories_help']; ?></p>
-            <div id="c-scope" class="mb-3 p-2" style="border:1px solid #dee2e6; border-radius:6px;">
+            <div id="c-scope" class="mb-3 p-2" style="border:1px solid var(--nit-brand-borderprimary); border-radius:6px;">
+                <?php // The coupon's one category comes first and is required: it is where the
+                      // coupon is advertised AND what it can be spent on. The two blocks below only
+                      // narrow inside it, and offer nothing from outside it. ?>
+                <div class="form-group mb-2">
+                    <label for="c-category"><strong><?php echo $STR['cpn_field_category']; ?></strong></label>
+                    <p class="text-muted small mb-1"><?php echo $STR['cpn_category_help']; ?></p>
+                    <select class="form-control" id="c-category" required style="max-width:420px">
+                        <option value=""><?php echo $STR['cpn_category_choose']; ?></option>
+                    </select>
+                </div>
+                <p class="text-muted small mb-1"><?php echo $STR['cpn_within_help']; ?></p>
                 <?php
-                // Category first: it is the broad brush an admin reaches for ("everything under
-                // Programming"); the course list below it is the fine one.
                 $scopetypes = array(
-                    'category'     => $STR['cpn_scope_categories'],
                     'course'       => $STR['cpn_scope_courses'],
                     'subscription' => $STR['cpn_scope_subscriptions'],
                 );
@@ -200,9 +209,9 @@ echo html_writer::script('window.ACADEMY_STR = ' . json_encode($STR) . ';');
                     echo '<input type="checkbox" class="form-check-input scope-on" id="scope-' . $t . '-on">';
                     echo '<label class="form-check-label" for="scope-' . $t . '-on"><strong>' . $label . '</strong></label>';
                     echo '</div>';
-                    echo '<div class="scope-detail" style="display:none; margin:.25rem 0 .25rem 1.5rem;">';
+                    echo '<div class="scope-detail" style="display:none; margin-block:.25rem; margin-inline-start:1.5rem;">';
                     echo '<select class="form-control form-control-sm scope-mode mb-1" style="max-width:220px">';
-                    echo '<option value="all">' . $STR['cpn_scope_all'] . '</option>';
+                    echo '<option value="all">' . $STR['cpn_scope_allincat'] . '</option>';
                     echo '<option value="specific">' . $STR['cpn_scope_specific'] . '</option>';
                     echo '</select>';
                     echo '<select class="form-control scope-list" multiple size="5" style="display:none"></select>';
@@ -383,30 +392,66 @@ echo html_writer::script(<<<'JS'
     }
 
     // ── Scope editor ──
+    // The coupon's one category decides what the two lists below may offer: the courses
+    // that sit under it and the plans that belong to it. Nothing from outside it is listed.
+    function catById(id){
+        return ((TARGETS && TARGETS.allcategories) || []).filter(function(c){ return c.id === id; })[0] || null;
+    }
+    /* Is category `id` the category `rootid` or beneath it? Read off the stored paths. */
+    function catWithin(id, rootid){
+        var c = catById(id), r = catById(rootid);
+        if (!c || !r){ return false; }
+        return c.path === r.path || c.path.indexOf(r.path + '/') === 0;
+    }
+    function chosenCategory(){ return parseInt($('c-category').value, 10) || 0; }
+
     function targetsFor(type){
-        if (!TARGETS){ return []; }
-        if (type === 'package'){ return TARGETS.packages || []; }
-        if (type === 'subscription'){ return TARGETS.subscriptions || []; }
-        if (type === 'program'){ return TARGETS.programs || []; }
-        /* Every category, indented by depth — including the parents holding no courses of their
-           own, which are exactly the ones worth scoping a whole branch to. */
-        if (type === 'category'){ return TARGETS.allcategories || []; }
+        var root = chosenCategory();
+        if (!TARGETS || !root){ return []; }
+        if (type === 'subscription'){
+            return (TARGETS.subscriptions || []).filter(function(s){
+                return s.category && catWithin(s.category, root);
+            });
+        }
         var courses = [];
         (TARGETS.categories || []).forEach(function(cat){
+            if (!catWithin(cat.id, root)){ return; }
             (cat.courses || []).forEach(function(co){ courses.push({ id:co.id, name:co.fullname }); });
         });
         return courses;
     }
+    // Rebuilds the list for the current category, keeping whatever was selected that is
+    // still on offer — so switching to a parent category does not throw a selection away.
     function fillList(block){
         var type = block.getAttribute('data-type');
         var sel = block.querySelector('.scope-list');
+        var keep = {};
+        Array.prototype.forEach.call(sel.selectedOptions || [], function(o){ keep[o.value] = true; });
         sel.innerHTML = '';
-        targetsFor(type).forEach(function(it){
+        var items = targetsFor(type);
+        items.forEach(function(it){
             var o = document.createElement('option');
             o.value = it.id; o.textContent = it.name;
+            o.selected = !!keep[String(it.id)];
             sel.appendChild(o);
         });
+        if (!items.length){
+            var none = document.createElement('option');
+            none.disabled = true; none.textContent = str('cpn_scope_nonein');
+            sel.appendChild(none);
+        }
     }
+    function fillCategoryPicker(){
+        var sel = $('c-category');
+        if (sel.getAttribute('data-built')){ return; }
+        ((TARGETS && TARGETS.allcategories) || []).forEach(function(cat){
+            var o = document.createElement('option');
+            o.value = cat.id; o.textContent = cat.name;
+            sel.appendChild(o);
+        });
+        sel.setAttribute('data-built', '1');
+    }
+    $('c-category').addEventListener('change', function(){ scopeBlocks().forEach(fillList); });
     function wireScopeBlock(block){
         var on = block.querySelector('.scope-on');
         var detail = block.querySelector('.scope-detail');
@@ -424,11 +469,19 @@ echo html_writer::script(<<<'JS'
             block.querySelector('.scope-mode').value = 'all';
             var list = block.querySelector('.scope-list');
             list.style.display = 'none';
-            fillList(block);
             Array.prototype.forEach.call(list.options, function(o){ o.selected = false; });
+            fillList(block);
         });
     }
     function applyScope(appliesTo){
+        // The category first, so the lists are built for it before anything is re-selected.
+        // A coupon saved before every coupon needed one opens on the placeholder, and its
+        // next save makes the admin choose.
+        fillCategoryPicker();
+        var cat = (appliesTo || []).filter(function(a){
+            return a.item_type === 'category' && a.item_id > 0 && catById(a.item_id);
+        })[0];
+        $('c-category').value = cat ? String(cat.item_id) : '';
         resetScope();
         var byType = {};
         (appliesTo || []).forEach(function(a){ (byType[a.item_type] = byType[a.item_type] || []).push(a.item_id); });
@@ -452,6 +505,8 @@ echo html_writer::script(<<<'JS'
     }
     function collectItems(){
         var items = [];
+        var root = chosenCategory();
+        if (root){ items.push({ item_type:'category', item_id:root }); }
         scopeBlocks().forEach(function(block){
             if (!block.querySelector('.scope-on').checked){ return; }
             var type = block.getAttribute('data-type');
@@ -497,6 +552,7 @@ echo html_writer::script(<<<'JS'
     function hideForm(){ $('cpn-form-card').style.display = 'none'; }
 
     function save(){
+        if (!chosenCategory()){ msg(str('err_cpncategoryrequired'), 'danger'); $('c-category').focus(); return; }
         var items = collectItems();
         if (!items.length){ msg(str('cpn_scope_required'), 'danger'); return; }
         var id = $('c-id').value;
@@ -579,6 +635,7 @@ echo html_writer::script(<<<'JS'
     // Load the selectable courses/packages/subscriptions, then the coupon list.
     api('get_discount_targets').then(function(t){
         TARGETS = t;
+        fillCategoryPicker();
         scopeBlocks().forEach(fillList);
     }).catch(function(e){ msg(e.message, 'danger'); }).then(load);
 

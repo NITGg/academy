@@ -143,6 +143,17 @@ $string['cpn_deleted']     = 'تم حذف الكوبون';
 $string['cpn_confirm_delete'] = 'هل تريد حذف هذا الكوبون؟ لا يمكن التراجع عن هذا الإجراء.';
 $string['cpn_edit_titled']    = 'تعديل الكوبون {$a}';
 $string['cpn_scope_required'] = 'اختر عنصرًا واحدًا على الأقل ليُطبَّق عليه الكوبون.';
+// كل كوبون يتبع تصنيفًا واحدًا فقط.
+$string['cpn_field_category']   = 'التصنيف';
+$string['cpn_category_help']    = 'التصنيف الذي يتبعه هذا الكوبون. لا يظهر إلا في صفحة هذا التصنيف وصفحات تصنيفاته الفرعية، ولا يُستخدم إلا على ما يقع تحته.';
+$string['cpn_category_choose']  = '— اختر تصنيفًا —';
+$string['cpn_within_help']      = 'تضييق النطاق داخل التصنيف (اختياري). إن تركت الاثنين بلا تحديد فسيشمل الكوبون كل كورسات التصنيف وكل اشتراكاته.';
+$string['cpn_scope_allincat']   = 'الكل داخل هذا التصنيف';
+$string['cpn_scope_nonein']     = 'لا يوجد شيء من هذا النوع في التصنيف المختار.';
+$string['cpn_allcourses_in']    = 'كل الكورسات في {$a}';
+$string['cpn_allplans_in']      = 'كل الاشتراكات في {$a}';
+$string['err_cpncategoryrequired']    = 'اختر التصنيف الذي يتبعه هذا الكوبون.';
+$string['err_cpnitemoutsidecategory'] = '«{$a->item}» ليس تحت {$a->category}، لذلك لا يمكن تطبيق هذا الكوبون عليه.';
 $string['cpn_used_count']     = 'استُخدم {$a}';
 
 // Offers (admin).
