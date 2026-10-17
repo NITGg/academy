@@ -77,7 +77,7 @@
             'html.nit-mode-dark .nit-cc-logo--light,html:not(.nit-mode-dark) .nit-cc-logo--dark{display:none}',
 
             '.nit-cc-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;',
-            'margin:0;max-width:56cqi;font-size:clamp(16px,5.5cqi,22px);line-height:1.364;font-weight:600;',
+            'flex:0 1 auto;min-width:0;margin:0;max-width:224px;font-size:clamp(16px,5.5cqi,22px);line-height:1.364;font-weight:600;',
             'color:var(--nit-brand-textprimary);text-align:start;overflow-wrap:anywhere}',
 
             '@media (prefers-reduced-motion:reduce){.nit-cc-photo{transition:none}',
