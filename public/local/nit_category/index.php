@@ -257,32 +257,6 @@ if (file_exists($themenitlib)) {
     require_once($themenitlib);
 }
 
-// The hero's three buttons may wear their own colours, apart from the rest of the
-// group: theme_nit config `nit_hero_buttons` = {"g6": {"primary": "#3e8541", …}, …},
-// written by theme/nit/cli/apply_figma_palette.php --hero. Each group's set re-declares
-// the --nit-brand-* button roles on .nit-hero__btns only, keyed on the group's <html>
-// class, so the light/dark switch still moves between the category's two sets. No row
-// (or --hero-remove) means the hero buttons follow the group like every other button.
-$herobtncss = '';
-$herobtns = json_decode((string) get_config('theme_nit', 'nit_hero_buttons'), true);
-if (is_array($herobtns) && function_exists('theme_nit_brand_group_class')) {
-    foreach ($herobtns as $gkey => $roles) {
-        $groupclass = theme_nit_brand_group_class((string) $gkey);
-        if ($groupclass === '' || !is_array($roles)) {
-            continue;
-        }
-        $decl = '';
-        foreach ($roles as $role => $hex) {
-            if (preg_match('/^[a-z0-9]+$/', (string) $role) && preg_match('/^#[0-9a-fA-F]{6}$/', (string) $hex)) {
-                $decl .= "--nit-brand-{$role}: {$hex}; ";
-            }
-        }
-        if ($decl !== '') {
-            $herobtncss .= "html.{$groupclass} .nit-hero__btns { {$decl}}\n";
-        }
-    }
-}
-
 // Bilingual inline helper (site is en/ar); mirrors the theme's {mlang} pairs.
 $isar = (strpos(current_language(), 'ar') === 0);
 $t = function (string $en, string $ar) use ($isar) {
@@ -646,10 +620,14 @@ echo $OUTPUT->header();
        Brand Colors editor, wired in theme_nit scss/foundation/_brand.scss. The course,
        plan and coupon cards below use the same two buttons, so an administrator
        recolours every button on this page from those two blocks and nothing else.
-       Nothing is pinned any more (neither a ghost fill for the veil nor the hero ink as
-       a label): a colour an admin cannot reach from the editor is exactly what this
-       page must not carry. A label that has to be white over the picture is the
-       block's "Text on main button" / "Brand outline button text" card, set there. */
+
+       The ONE exception is the label: in the hero, and only in the hero, every button's
+       text is white, resting, hovered and pressed, whatever the group. That was a
+       decision (2026-10-17), not a fallback: making the Text roles white in every group
+       turned the outline buttons on light pages invisible, so the groups keep their own
+       Text roles and only these buttons are pinned. Fill, ring and their hover states
+       still come from the editor. Higher specificity than .btn-primary /
+       .btn-outline-primary in _brand.scss, so it wins without !important. */
     .nit-hero__btns {
       display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
       animation: nit-fadeup 0.9s ease 0.55s both;
@@ -657,9 +635,12 @@ echo $OUTPUT->header();
     .nit-hero__btns .btn {
       padding: 12px 32px; border-radius: 8px;
       font-size: 18px; font-weight: 500;
+      --bs-btn-color: #fff;
+      --bs-btn-hover-color: #fff;
+      --bs-btn-active-color: #fff;
+      --bs-btn-disabled-color: #fff;
     }
     .nit-hero__btns .btn-outline-primary { border-width: 2px; padding: 11px 31px; }
-<?= $herobtncss ?>
   </style>
   <div class="nit-hero<?= $hasrealimage ? ' nit-hero--art' : '' ?>" dir="<?= $isar ? 'rtl' : 'ltr' ?>">
     <?php if ($hasrealimage): ?>
