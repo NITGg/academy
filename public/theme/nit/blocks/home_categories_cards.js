@@ -40,12 +40,10 @@
             '@media (max-width:991.98px){.nit-cc-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}}',
             '@media (max-width:575.98px){.nit-cc-grid{grid-template-columns:minmax(0,1fr);gap:16px}}',
 
-            '.nit-cc-card{position:relative;display:block;aspect-ratio:400/279;border-radius:12px;',
+            '.nit-cc-card{position:relative;display:block;aspect-ratio:400/250;border-radius:12px;',
             'overflow:hidden;isolation:isolate;container-type:inline-size;',
             'background:var(--nit-brand-surface);color:var(--nit-brand-textprimary)!important;',
-            'text-decoration:none!important;box-shadow:17px 21px 22px rgba(0,0,0,.5);',
-            '}',
-            'html.nit-mode-light .nit-cc-card{box-shadow:0 14px 30px rgba(0,0,0,.18)}',
+            'text-decoration:none!important}',
             '.nit-cc-card:focus-visible{outline:3px solid var(--nit-brand-primary);outline-offset:3px}',
 
             '.nit-cc-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;',
@@ -59,14 +57,27 @@
             'html[dir=rtl] .nit-cc-card::before{',
             'background:linear-gradient(to left,' + scrimStrong + ' 0%,' + scrimStrong + ' 68%,' + scrimSoft + ' 100%)}',
 
-            '.nit-cc-body{position:absolute;inset-block-start:23.3%;inset-inline:6%;',
-            'display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:72%}',
+            // One ROW, vertically centred, 25px in from the inline start (Figma
+            // 400x250 card): the logo, a "|" rule, then the name - right to
+            // left in Arabic, left to right in English.
+            '.nit-cc-body{position:absolute;top:50%;transform:translateY(-50%);inset-inline-start:6.25%;',
+            'display:flex;flex-direction:row;align-items:flex-start;gap:10px;max-width:87.5%}',
 
-            '.nit-cc-logo{display:block;height:clamp(20px,7cqi,28px);width:auto;max-width:100%;object-fit:contain}',
+            // The logo box: 40px wide with 6px either side, and the rule on its
+            // end edge - the "|" between the mark and the name.
+            '.nit-cc-mark{flex:0 0 auto;box-sizing:border-box;width:clamp(32px,10cqi,40px);padding:0 6px;',
+            'border-inline-end:1px solid var(--nit-brand-textprimary)}',
+            '.nit-cc-markbox{position:relative;display:block;width:100%;aspect-ratio:32/28;overflow:hidden}',
+            '.nit-cc-logo{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:contain}',
+            // A category logo is the full lock-up drawn on one shared canvas
+            // (5670x4252, mark at the left); the card shows only the mark, cut
+            // out exactly as the Figma frame does. Physical left/top on
+            // purpose: they address the picture, not the reading direction.
+            '.nit-cc-logo--crop{inset:auto;left:-80.8%;top:-158.8%;width:498.5%;height:421%;object-fit:fill}',
             'html.nit-mode-dark .nit-cc-logo--light,html:not(.nit-mode-dark) .nit-cc-logo--dark{display:none}',
 
             '.nit-cc-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;',
-            'margin:0;font-size:clamp(18px,7cqi,28px);line-height:1.43;font-weight:700;',
+            'margin:0;max-width:56cqi;font-size:clamp(16px,5.5cqi,22px);line-height:1.364;font-weight:600;',
             'color:var(--nit-brand-textprimary);text-align:start;overflow-wrap:anywhere}',
 
             '@media (prefers-reduced-motion:reduce){.nit-cc-photo{transition:none}',
@@ -122,9 +133,12 @@
         return all.slice(0, limit);
     }
 
-    function logoImg(src, modifier) {
+    // crop: true for a category's own logo (cut down to its mark), false for
+    // the site-logo fallback, which is drawn whole.
+    function logoImg(src, modifier, crop) {
         var img = document.createElement('img');
-        img.className = 'nit-cc-logo' + (modifier ? ' nit-cc-logo--' + modifier : '');
+        img.className = 'nit-cc-logo' + (modifier ? ' nit-cc-logo--' + modifier : '') +
+            (crop ? ' nit-cc-logo--crop' : '');
         img.src = src;
         img.alt = '';
         img.decoding = 'async';
@@ -151,15 +165,23 @@
 
         var light = cat.logolight || siteLogo('light');
         var dark = cat.logodark || siteLogo('dark');
+        var mark = document.createElement('span');
+        mark.className = 'nit-cc-mark';
+        var box = document.createElement('span');
+        box.className = 'nit-cc-markbox';
         if (light && light === dark) {
-            body.appendChild(logoImg(light, ''));
+            box.appendChild(logoImg(light, '', !!cat.logolight));
         } else {
             if (light) {
-                body.appendChild(logoImg(light, 'light'));
+                box.appendChild(logoImg(light, 'light', !!cat.logolight));
             }
             if (dark) {
-                body.appendChild(logoImg(dark, 'dark'));
+                box.appendChild(logoImg(dark, 'dark', !!cat.logodark));
             }
+        }
+        if (box.firstChild) {
+            mark.appendChild(box);
+            body.appendChild(mark);
         }
 
         var name = document.createElement('span');
