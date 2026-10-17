@@ -419,10 +419,12 @@ echo $OUTPUT->header();
 
     .nit-hero {
       background: var(--cbg2);
-      min-height: 85vh;
+      /* Figma "الوجيستيات": the hero is 491px tall, straight under the bar. It grows
+         past that only when its copy needs the room (a long description, a phone). */
+      min-height: 491px;
       display: flex; align-items: center; justify-content: center; flex-direction: column;
       text-align: center;
-      padding: 120px 5% 80px;
+      padding: 48px 5%;
       position: relative; overflow: hidden;
       border-bottom: 1px solid color-mix(in srgb, var(--cbg4) 20%, transparent);
     }
@@ -475,7 +477,7 @@ echo $OUTPUT->header();
        badge already names the category. An <img>, not CSS url(), so the file name never
        has to survive CSS-string escaping. */
     .nit-hero--art {
-      min-height: min(70vh, 680px);
+      min-height: 491px;
       align-items: flex-start;
       text-align: start;
       padding-inline: 6%;

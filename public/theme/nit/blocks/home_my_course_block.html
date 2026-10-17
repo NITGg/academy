@@ -72,6 +72,16 @@
         <a class="nit-mc-card"
           style="width: 100%; height: 100%; box-sizing: border-box; background: var(--nit-brand-surface); border: 1.68px solid color-mix(in srgb, var(--nit-brand-accent) 70%, transparent); border-radius: 12px; overflow: hidden; display: flex; align-items: center; gap: 0; padding: 20px 12px; text-decoration: none;"
           href="#" data-nit-mc-resume="">
+          <!-- THUMBNAIL — first, so it sits at the inline START of the card: on the
+               right in Arabic (as in the design), on the left in English.
+               A div holding a non-breaking space, not an empty span:
+               Moodle's rich-text editor strips empty inline elements when the
+               block is saved, which is why the first version of this block showed
+               no images at all on the live site. font-size 0 keeps the space from
+               affecting the box. -->
+          <div
+            style="flex: 0 0 200px; width: 200px; max-width: 38%; height: 150px; border-radius: 8px; font-size: 0; line-height: 0; box-shadow: 0 8px 22px 0 rgba(0,0,0,.25); background: color-mix(in srgb, var(--nit-brand-surface) 86%, var(--nit-brand-textprimary)) center / cover no-repeat;"
+            data-nit-mc-image="" aria-hidden="true">&nbsp;</div>
           <!-- TEXT COLUMN -->
           <div
             style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 0 16px;">
@@ -162,14 +172,6 @@
               </div>
             </div>
           </div>
-          <!-- THUMBNAIL. A div holding a non-breaking space, not an empty span:
-               Moodle's rich-text editor strips empty inline elements when the
-               block is saved, which is why the first version of this block showed
-               no images at all on the live site. font-size 0 keeps the space from
-               affecting the box. -->
-          <div
-            style="flex: 0 0 200px; width: 200px; max-width: 38%; height: 150px; border-radius: 8px; font-size: 0; line-height: 0; box-shadow: 0 8px 22px 0 rgba(0,0,0,.25); background: color-mix(in srgb, var(--nit-brand-surface) 86%, var(--nit-brand-textprimary)) center / cover no-repeat;"
-            data-nit-mc-image="" aria-hidden="true">&nbsp;</div>
         </a>
       </div>
     </div>
@@ -249,7 +251,7 @@
         // Below the design width the thumbnail moves above the text rather than
         // squeezing the course name into a column two words wide.
         '@media (max-width:560px){' +
-        '.nit-mc-card{flex-direction:column-reverse!important;align-items:stretch!important;padding:12px!important}' +
+        '.nit-mc-card{flex-direction:column!important;align-items:stretch!important;padding:12px!important}' +
         '.nit-mc-card [data-nit-mc-image]{flex:0 0 auto!important;width:100%!important;max-width:none!important;height:160px!important;margin:0 0 16px}' +
         '.nit-mc-card>div{padding:0 4px!important}}';
       var st = document.createElement('style');
