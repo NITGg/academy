@@ -64,5 +64,25 @@ function xmldb_theme_nit_upgrade($oldversion): bool {
         upgrade_plugin_savepoint(true, 2026091402, 'theme', 'nit');
     }
 
+    if ($oldversion < 2026101701) {
+        // The navbar type now follows the Figma design site-wide: links 16px
+        // SemiBold (the current page 18px Bold, in _navbar.scss) and "Log in"
+        // 18px SemiBold. Those are the defaults in theme_nit_navbar_type_subjects();
+        // clearing every group's saved title / log-in size and weight lets each
+        // group fall back to them. The gallery can still set them again afterwards.
+        global $DB;
+        $names = $DB->get_fieldset_select('config_plugins', 'name',
+            "plugin = 'theme_nit' AND (" . $DB->sql_like('name', ':a') . ' OR ' . $DB->sql_like('name', ':b') . ')',
+            ['a' => 'navbarsize\_%', 'b' => 'navbarweight\_%']);
+        foreach ($names as $name) {
+            if (preg_match('/_(title|login)$/', $name)) {
+                unset_config($name, 'theme_nit');
+            }
+        }
+        theme_reset_all_caches();
+
+        upgrade_plugin_savepoint(true, 2026101701, 'theme', 'nit');
+    }
+
     return true;
 }

@@ -211,5 +211,3 @@ $string['whycard_confirmdelete'] = 'Delete the card "{$a}"? Its picture is delet
 // Course card stats row (classes/course_card.php).
 $string['cardlessons'] = '{$a} lessons';
 $string['cardhours'] = '{$a} hours';
-$string['cardhoursweek'] = '{$a} h / week';
-$string['cardweeks'] = '{$a} weeks';

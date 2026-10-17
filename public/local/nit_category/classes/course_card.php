@@ -24,15 +24,15 @@ use moodle_url;
  * The top half of the course card (Figma "Course Card", file "الوجيستيات").
  *
  * Accent strip, cover picture, title + second line, a rule, and the stats row
- * (lessons · hours · weeks). Both the category page and the catalogue print it, so
+ * (lessons · hours · language). Both the category page and the catalogue print it, so
  * the two cards can never drift apart again; each page then prints its own footer
  * (price row + buttons) inside `.nitcc__foot`, because the two pages resolve the price
  * through different helpers. The look lives in styles.css under "Course card".
  *
  * Every number comes from data the course already has: lessons are its visible
- * activities (labels and sub-sections are not lessons), hours are the
- * total_number_of_hours field the catalogue's Duration filter reads, and weeks are the
- * course start → end dates. A stat with nothing behind it is left out, never shown as 0.
+ * activities (labels and sub-sections are not lessons), and hours and language are the
+ * fields the catalogue's Duration and Language filters read. A stat with nothing behind
+ * it is left out, never shown as 0.
  *
  * @package    local_nit_category
  * @copyright  2026 NIT
@@ -48,6 +48,9 @@ class course_card {
 
     /** @var array<int,float>|null course id => total hours */
     private static $hours = null;
+
+    /** @var array<int,string>|null course id => stored Language value (may be {mlang}) */
+    private static $languages = null;
 
     /**
      * The card's opening markup, up to (not including) the footer.
@@ -93,7 +96,10 @@ class course_card {
         $h .= '</div>';
 
         $stats = self::stats($course);
-        $chips = array_values(array_filter((array) ($opts['chips'] ?? []), static fn($c) => (string) $c !== ''));
+        // A chip that repeats a stat (the language) is dropped.
+        $stattexts = array_column($stats, 1);
+        $chips = array_values(array_filter((array) ($opts['chips'] ?? []),
+            static fn($c) => (string) $c !== '' && !in_array((string) $c, $stattexts, true)));
         if ($stats || $chips) {
             $h .= '<hr class="nitcc__rule">';
         }
@@ -186,19 +192,15 @@ class course_card {
             $stats[] = ['book', get_string('cardlessons', 'local_nit_category', $lessons)];
         }
 
-        $weeks = 0;
-        if (!empty($course->enddate) && $course->enddate > $course->startdate) {
-            $weeks = (int) ceil(($course->enddate - $course->startdate) / WEEKSECS);
-        }
         $hours = self::$hours[$courseid] ?? 0.0;
-        if ($hours > 0 && $weeks > 0) {
-            $stats[] = ['clock', get_string('cardhoursweek', 'local_nit_category',
-                text_util::number(round($hours / $weeks, 1)))];
-        } else if ($hours > 0) {
+        if ($hours > 0) {
             $stats[] = ['clock', get_string('cardhours', 'local_nit_category', text_util::number($hours))];
         }
-        if ($weeks > 0) {
-            $stats[] = ['calendar', get_string('cardweeks', 'local_nit_category', $weeks)];
+        // Not "weeks" from the course dates, although the design shows one: Moodle gives
+        // every new course an end date a year out, so nearly every card would say 53 weeks.
+        $language = text_util::ml(self::$languages[$courseid] ?? '');
+        if ($language !== '' && catalogue::is_label($language)) {
+            $stats[] = ['globe', $language];
         }
         return $stats;
     }
@@ -222,27 +224,49 @@ class course_card {
               GROUP BY cm.course";
         self::$lessons = array_map('intval', $DB->get_records_sql_menu($sql, $params));
 
-        $shortname = trim((string) get_config('local_nit_category', 'filterfield_duration'));
-        if ($shortname === '') {
-            $shortname = 'total_number_of_hours';
+        // The same two fields the catalogue's Duration and Language filters read.
+        self::$hours = [];
+        foreach (self::field_values('duration', 'total_number_of_hours') as $id => $row) {
+            $h = (float) ($row->decvalue ?? $row->value);
+            if ($h > 0) {
+                self::$hours[$id] = $h;
+            }
         }
-        $sql = "SELECT d.instanceid, COALESCE(d.decvalue, " . $DB->sql_cast_char2real('d.value') . ") AS h
+        self::$languages = [];
+        foreach (self::field_values('language', 'language') as $id => $row) {
+            self::$languages[$id] = (string) $row->value;
+        }
+    }
+
+    /**
+     * Every course's stored value of one course custom field.
+     *
+     * @param string $role the catalogue filter role whose setting names the field
+     * @param string $default the field's shortname when that setting is empty
+     * @return array<int, \stdClass> course id => {value, decvalue}
+     */
+    private static function field_values(string $role, string $default): array {
+        global $DB;
+        $shortname = trim((string) get_config('local_nit_category', 'filterfield_' . $role));
+        if ($shortname === '') {
+            $shortname = $default;
+        }
+        $sql = "SELECT d.instanceid, d.value, d.decvalue
                   FROM {customfield_data} d
                   JOIN {customfield_field} f ON f.id = d.fieldid
                   JOIN {customfield_category} c ON c.id = f.categoryid
                  WHERE c.component = 'core_course' AND c.area = 'course' AND f.shortname = :sn";
-        self::$hours = [];
-        foreach ($DB->get_records_sql_menu($sql, ['sn' => $shortname]) as $id => $h) {
-            if ((float) $h > 0) {
-                self::$hours[(int) $id] = (float) $h;
-            }
+        $rows = [];
+        foreach ($DB->get_records_sql($sql, ['sn' => $shortname]) as $row) {
+            $rows[(int) $row->instanceid] = $row;
         }
+        return $rows;
     }
 
     /**
      * One of the three stat icons, drawn in the brand colour by CSS (currentColor).
      *
-     * @param string $name book|clock|calendar
+     * @param string $name book|clock|globe
      * @return string
      */
     private static function icon(string $name): string {
@@ -250,7 +274,7 @@ class course_card {
             'book'     => '<path d="M2 4.5h5a3 3 0 0 1 3 3V20a2.2 2.2 0 0 0-2.2-2.2H2z"/>'
                         . '<path d="M22 4.5h-5a3 3 0 0 0-3 3V20a2.2 2.2 0 0 1 2.2-2.2H22z"/>',
             'clock'    => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-            'calendar' => '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>',
+            'globe'    => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
         ];
         return '<svg class="nitcc__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
             . ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'

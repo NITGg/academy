@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'theme_nit';
-$plugin->version   = 2026101700;        // YYYYMMDDXX — usermenuhide: Preferences / Language / Switch role can be taken off the avatar menu (all hidden by default).
+$plugin->version   = 2026101701;        // YYYYMMDDXX — navbar type to the Figma design: links 16/600, current page 18/700, Log in 18 (saved title/login sizes cleared).
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline (pinned per CI matrix).
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_ALPHA;    // Foundation + rendering + branding (M2–M5); pre-1.0.

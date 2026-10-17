@@ -209,5 +209,3 @@ $string['whycard_confirmdelete'] = 'هل تريد حذف البطاقة «{$a}»
 // Course card stats row (classes/course_card.php).
 $string['cardlessons'] = '{$a} درس';
 $string['cardhours'] = '{$a} ساعة';
-$string['cardhoursweek'] = '{$a} ساعة/ أسبوع';
-$string['cardweeks'] = '{$a} أسبوع';

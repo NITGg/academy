@@ -282,6 +282,11 @@ $nit-navpanel-divider: var(--nit-navbarpanelborder, #dedede); // light row divid
         // while the cursor is over it.
         &.active,
         &[aria-current="page"] {
+            // The design (Figma "الوجيستيات" nav) sets the current page 2px larger
+            // and Bold over the 16px SemiBold links. It changes once per page load,
+            // never under the cursor, so the bar does not jitter.
+            font-size: calc(var(--nit-navtitle-size, 1rem) + 2px);
+            font-weight: 700;
             background-color: var(--nit-navtitle-active-bg, transparent);
 
             .nit-navbar-link-label::after {

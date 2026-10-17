@@ -759,7 +759,7 @@ function theme_nit_navbar_type_subjects(): array {
             'label'  => 'Navbar login text',
             'short'  => 'Login text',
             'usage'  => ['size and weight of the "Log in" link'],
-            'size'   => 16, 'weight' => 600, 'min' => 12, 'max' => 28,
+            'size'   => 18, 'weight' => 600, 'min' => 12, 'max' => 28,
         ],
     ];
 }
