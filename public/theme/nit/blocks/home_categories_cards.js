@@ -50,13 +50,19 @@
 
             '.nit-cc-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}',
 
-            // Hover: a border in the brand red (Accent), as in the Figma frame.
+            // Hover: a border in the CATEGORY's own colour (logistics blue,
+            // engineering green, ...): --nit-cc-color-light / -dark, set on the
+            // card from the Primary role of the group the category wears in that
+            // mode. A category with no group falls back to the site Accent.
             // Drawn by an overlay rather than the card's own border because the
             // photo (z-index -2 inside the card) would paint over that, and an
             // overlay adds no width so nothing in the grid moves.
             '.nit-cc-card::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;',
             'border-radius:inherit;border:2px solid transparent;transition:border-color .2s ease}',
-            '.nit-cc-card:hover::after,.nit-cc-card:focus-visible::after{border-color:var(--nit-brand-accent)}',
+            '.nit-cc-card:hover::after,.nit-cc-card:focus-visible::after{',
+            'border-color:var(--nit-cc-color-light,var(--nit-brand-accent))}',
+            'html.nit-mode-dark .nit-cc-card:hover::after,html.nit-mode-dark .nit-cc-card:focus-visible::after{',
+            'border-color:var(--nit-cc-color-dark,var(--nit-brand-accent))}',
 
             // The scrim is darkest behind the text, which sits at the inline
             // start: the right in Arabic, the left in English.
@@ -65,10 +71,11 @@
             'html[dir=rtl] .nit-cc-card::before{',
             'background:linear-gradient(to left,' + scrimStrong + ' 0%,' + scrimStrong + ' 68%,' + scrimSoft + ' 100%)}',
 
-            // One ROW, vertically centred, 25px in from the inline start (Figma
-            // 400x250 card): the logo, a "|" rule, then the name - right to
-            // left in Arabic, left to right in English.
-            '.nit-cc-body{position:absolute;top:50%;transform:translateY(-50%);inset-inline-start:6.25%;',
+            // One ROW, centred on a line 40% down the card (above the middle, so
+            // the text sits clear of the busy lower half of the photo), 25px in
+            // from the inline start: the logo, a "|" rule, then the name - right
+            // to left in Arabic, left to right in English.
+            '.nit-cc-body{position:absolute;top:40%;transform:translateY(-50%);inset-inline-start:6.25%;',
             'display:flex;flex-direction:row;align-items:flex-start;gap:10px;max-width:87.5%}',
 
             // The logo box: 40px wide with 6px either side, and the rule on its
@@ -174,6 +181,13 @@
         var a = document.createElement('a');
         a.className = 'nit-cc-card';
         a.href = cat.url || '#';
+        // The category's own colour per mode, read by the hover border.
+        if (cat.colorlight) {
+            a.style.setProperty('--nit-cc-color-light', cat.colorlight);
+        }
+        if (cat.colordark) {
+            a.style.setProperty('--nit-cc-color-dark', cat.colordark);
+        }
 
         if (cat.image) {
             var photo = document.createElement('img');

@@ -4357,7 +4357,7 @@ function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
  * Exposed to JavaScript as `window.NIT_CATEGORIES`.
  *
  * @param int $limit maximum number of categories
- * @return array<int, array{id:int,name:string,names:array<string,string>,coursecount:int,icon:string,iconurl:string,image:string,logolight:string,logodark:string,url:string}>
+ * @return array<int, array{id:int,name:string,names:array<string,string>,coursecount:int,icon:string,iconurl:string,image:string,logolight:string,logodark:string,colorlight:string,colordark:string,url:string}>
  */
 function theme_nit_get_categories(int $limit = 4): array {
     global $CFG, $OUTPUT;
@@ -4410,6 +4410,14 @@ function theme_nit_get_categories(int $limit = 4): array {
             // '' when that slot is empty. Callers pick their own fallback.
             'logolight' => ($catlogo = theme_nit_category_logo_url((int) $cat->id, 'light')) ? $catlogo->out(false) : '',
             'logodark' => ($catlogo = theme_nit_category_logo_url((int) $cat->id, 'dark')) ? $catlogo->out(false) : '',
+            // The category's own colour for each display mode: the Primary role
+            // of the Brand Colors group assigned to it on the "Change style" tab
+            // (logistics blue, engineering green, ...). '' when no group is
+            // assigned for that mode; callers fall back to the site palette.
+            'colorlight' => ($catgroup = theme_nit_category_brand_group_assigned((int) $cat->id, 'light'))
+                ? theme_nit_brandcolour($catgroup . '_primary') : '',
+            'colordark' => ($catgroup = theme_nit_category_brand_group_assigned((int) $cat->id, 'dark'))
+                ? theme_nit_brandcolour($catgroup . '_primary') : '',
             // Build the details-page URL here so the frontend never has to guess wwwroot.
             'url' => (new moodle_url('/local/nit_category/index.php', ['id' => $cat->id]))->out(false),
         ];
