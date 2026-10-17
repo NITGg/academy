@@ -67,13 +67,16 @@
             // end edge - the "|" between the mark and the name.
             '.nit-cc-mark{flex:0 0 auto;box-sizing:border-box;width:clamp(32px,10cqi,40px);padding:0 6px;',
             'border-inline-end:1px solid var(--nit-brand-textprimary)}',
-            '.nit-cc-markbox{position:relative;display:block;width:100%;aspect-ratio:32/28;overflow:hidden}',
+            '.nit-cc-markbox{position:relative;display:block;width:100%;aspect-ratio:1114/872;overflow:hidden}',
             '.nit-cc-logo{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:contain}',
-            // A category logo is the full lock-up drawn on one shared canvas
-            // (5670x4252, mark at the left); the card shows only the mark, cut
-            // out exactly as the Figma frame does. Physical left/top on
-            // purpose: they address the picture, not the reading direction.
-            '.nit-cc-logo--crop{inset:auto;left:-80.8%;top:-158.8%;width:498.5%;height:421%;object-fit:fill}',
+            // A category logo is the full lock-up on the shared 958x308 logo
+            // canvas (assets/Eaac logos/New folder (2)): the mark (bars + book)
+            // sits at the top-left corner, 284x222. The card shows only the
+            // mark, so the box takes the mark's shape and the picture is drawn
+            // canvas/mark times larger, pinned at that corner. Physical left/top
+            // on purpose: they address the picture, not the reading direction.
+            // A logo on another canvas needs these four numbers redone.
+            '.nit-cc-logo--crop{inset:auto;left:0;top:0;width:337.8%;height:138.7%;object-fit:fill}',
             'html.nit-mode-dark .nit-cc-logo--light,html:not(.nit-mode-dark) .nit-cc-logo--dark{display:none}',
 
             '.nit-cc-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;',
@@ -90,7 +93,7 @@
             'filter:drop-shadow(0 4px 11px rgba(0,0,0,.55))}',
             'html.nit-mode-light [data-nit-catcards-arc]{filter:drop-shadow(0 4px 11px rgba(0,0,0,.14))}',
             '[data-nit-catcards-arc] path{fill:var(--nit-brand-background)}',
-            '[data-nit-catcards-brand]{height:clamp(96px,13.7vw,197px);width:auto;max-width:100%;object-fit:contain}',
+            '[data-nit-catcards-brand]{height:100%;width:auto;max-width:100%;object-fit:contain}',
 
             // The corner controls - same look and contract as the hero block's
             // (data-nit-hero-tool), so both blocks can share a page.
@@ -205,11 +208,17 @@
         section.setAttribute('dir', document.documentElement.getAttribute('dir') === 'rtl' ? 'rtl' : 'ltr');
 
         // The big logo: the site's wide lock-up. data-nit-logo="full" lets the
-        // theme's light/dark switch swap it with the navbar's mark.
+        // theme's light/dark switch swap it with the navbar's mark. The block's
+        // inline script has normally set it already; this covers an older
+        // paste without that script, and leaves an equal src alone so the
+        // picture is not fetched twice.
         var brand = window.NIT_LOGO_FULL || window.NIT_LOGO;
         if (typeof brand === 'string' && brand) {
             section.querySelectorAll('[data-nit-catcards-brand]').forEach(function(img) {
-                img.src = brand;
+                if (img.src !== brand) {
+                    img.src = brand;
+                }
+                img.style.opacity = '1';
             });
         }
 

@@ -26,7 +26,12 @@
      THE BIG LOGO is the site's wide lock-up, window.NIT_LOGO_FULL (Site
      administration then Appearance then Logos), filled in by the script. It
      carries data-nit-logo="full" so the light/dark switch swaps it together
-     with the navbar's mark. The picture in the markup is only the fallback.
+     with the navbar's mark. The picture in the markup is only the fallback
+     for a site with no logo uploaded: the small script right after it swaps
+     in the real logo while the page is still being parsed and keeps the
+     picture invisible over a pulsing skeleton (the logo's own size, so
+     nothing below it moves) until it has loaded - so the old fallback never
+     flashes on screen first.
 
      THE TWO CONTROLS are copies of the navbar's own, with the same contract as
      the hero block (home_6_categories1.html): window.NIT_LANG_TOGGLE and
@@ -156,8 +161,56 @@
     style="position: relative; z-index: 1; width: 100%; max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 25px;">
     <div
       style="display: flex; justify-content: center; width: 100%; margin-bottom: clamp(32px, 6vw, 84px);">
-      <img class="img-fluid" src="/moodle-new/theme/nit/pix/footer-logo.png"
-        alt="EAAC" data-nit-catcards-brand="" data-nit-logo="full"></div>
+      <span
+        style="display: block; height: clamp(96px, 13.7vw, 197px); aspect-ratio: 548 / 197; max-width: 100%; border-radius: 14px; background: color-mix(in srgb, var(--nit-brand-textprimary) 8%, transparent);"
+        data-nit-catcards-skel="" data-nit-skel-anim=""><img
+        style="display: block; height: 100%; width: auto; max-width: 100%; margin: 0 auto; opacity: 0; transition: opacity .3s ease;"
+        src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+        data-nit-catcards-brand="" data-nit-logo="full"></span></div>
+    <script>
+      // The big logo, set while the page is still being parsed: the real
+      // site logo goes in before the fallback in the markup can paint, and
+      // the picture stays invisible over its skeleton until it has loaded.
+      // No less-than character in here.
+      (function() {
+        var here = document.currentScript;
+        var row = here ? here.previousElementSibling : null;
+        var img = row ? row.querySelector('[data-nit-catcards-brand]') : null;
+        var skel = row ? row.querySelector('[data-nit-catcards-skel]') : null;
+        if (!img) {
+          return;
+        }
+        if (!document.getElementById('nit-catcards-skel-style')) {
+          var st = document.createElement('style');
+          st.id = 'nit-catcards-skel-style';
+          st.textContent = '[data-nit-skel-anim]{animation:nitCatSkel 1.2s ease-in-out infinite}' +
+            '@keyframes nitCatSkel{0%,100%{opacity:1}50%{opacity:.5}}' +
+            '@media (prefers-reduced-motion:reduce){[data-nit-skel-anim]{animation:none}}';
+          (document.head || document.documentElement).appendChild(st);
+        }
+        var shown = false;
+        var show = function() {
+          if (shown) {
+            return;
+          }
+          shown = true;
+          img.style.opacity = '1';
+          if (skel) {
+            skel.removeAttribute('data-nit-skel-anim');
+            skel.style.background = 'none';
+            skel.style.aspectRatio = 'auto';
+          }
+        };
+        img.addEventListener('load', show);
+        img.addEventListener('error', show);
+        var src = window.NIT_LOGO_FULL || window.NIT_LOGO;
+        if (typeof src === 'string' && src) {
+          img.src = src;
+        } else if (img.complete) {
+          show();
+        }
+      })();
+    </script>
     <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; text-align: center;">
       <p
         style="margin: 0; font-size: clamp(16px, 1.6vw, 22px); font-weight: 600; line-height: normal; color: var(--nit-brand-primary);">
