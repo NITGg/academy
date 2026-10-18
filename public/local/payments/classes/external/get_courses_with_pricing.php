@@ -104,6 +104,7 @@ class get_courses_with_pricing extends external_api {
                 'discount_percentage' => 0,
                 'is_sale_active'      => false,
                 'sale_ends_at'        => 0,
+                'offer_name'          => '',
                 'is_free'             => true,
                 'is_purchased'        => $is_purchased,
                 'is_enrolled'         => $is_enrolled,
@@ -127,6 +128,7 @@ class get_courses_with_pricing extends external_api {
                     $pricing['is_sale_active']      = $resolved->is_sale_active;
                     $pricing['sale_ends_at']        = (int) ($resolved->sale_ends_at ?? 0);
                     $pricing['is_free']             = false;
+                    $pricing = array_merge($pricing, self::offer_fields($courseid, (float) $resolved->price));
                 } catch (\moodle_exception $e) {
                     // No pricing rule for this country — treat as free.
                 }
@@ -147,6 +149,43 @@ class get_courses_with_pricing extends external_api {
         ];
     }
 
+    /**
+     * The best live automatic offer on a course, as the card's sale fields.
+     *
+     * Goes through discount_manager::resolve() with an empty coupon and the same base price —
+     * exactly what local_nit_commerce_preview_discount does — so the card and checkout can
+     * never quote different amounts. Courses have no per-course sale of their own any more
+     * (price_resolver::resolve() always reports none), so the offer is the only discount.
+     *
+     * @param int $courseid
+     * @param float $base the country-resolved price
+     * @return array the keys to overwrite; empty when no offer takes anything off
+     */
+    private static function offer_fields(int $courseid, float $base): array {
+        global $DB, $USER;
+        if ($base <= 0 || !class_exists('\local_nit_commerce\discount_manager')) {
+            return [];
+        }
+        try {
+            $r = \local_nit_commerce\discount_manager::resolve('course', $courseid, $USER->id, '', $base);
+        } catch (\Throwable $e) {
+            // No offer engine / bad offer data — show the undiscounted price.
+            return [];
+        }
+        if (($r['applied'] ?? 'none') !== 'offer' || (float) $r['offer_discount'] <= 0) {
+            return [];
+        }
+        $original = (float) $r['original'];
+        return [
+            'original_price'      => $original,
+            'sale_price'          => (float) $r['final'],
+            'discount_percentage' => $original > 0 ? (int) round((float) $r['offer_discount'] / $original * 100) : 0,
+            'is_sale_active'      => true,
+            'sale_ends_at'        => (int) $DB->get_field('nit_offer', 'enddate', ['id' => (int) $r['offer_id']]),
+            'offer_name'          => (string) $r['offer_name'],
+        ];
+    }
+
     public static function execute_returns(): external_single_structure {
         global $CFG;
         // Reuse core's own return structure so it never drifts from
@@ -158,11 +197,14 @@ class get_courses_with_pricing extends external_api {
             'pricing_country'     => new external_value(PARAM_ALPHA, 'resolved country code for pricing', VALUE_OPTIONAL),
             'currency'            => new external_value(PARAM_ALPHA, 'currency code (e.g. EGP)', VALUE_OPTIONAL),
             'price'               => new external_value(PARAM_FLOAT, 'effective price - sale price if active, otherwise original', VALUE_OPTIONAL),
-            'sale_price'          => new external_value(PARAM_FLOAT, 'sale price, or 0 if no active sale', VALUE_OPTIONAL),
+            'sale_price'          => new external_value(PARAM_FLOAT,
+                'price after the best live offer (what checkout charges), or 0 if none', VALUE_OPTIONAL),
             'original_price'      => new external_value(PARAM_FLOAT, 'original price before any discount', VALUE_OPTIONAL),
             'discount_percentage' => new external_value(PARAM_INT,   'discount percentage 0-100', VALUE_OPTIONAL),
-            'is_sale_active'      => new external_value(PARAM_BOOL,  'whether a sale is currently active', VALUE_OPTIONAL),
-            'sale_ends_at'        => new external_value(PARAM_INT,   'sale end unix timestamp, or 0', VALUE_OPTIONAL),
+            'is_sale_active'      => new external_value(PARAM_BOOL,  'whether an offer is currently applied', VALUE_OPTIONAL),
+            'sale_ends_at'        => new external_value(PARAM_INT,   'offer end unix timestamp, or 0', VALUE_OPTIONAL),
+            'offer_name'          => new external_value(PARAM_TEXT,
+                'name of the applied offer in the request language, or empty', VALUE_OPTIONAL),
             'is_free'             => new external_value(PARAM_BOOL,  'true if no active pricing rule', VALUE_OPTIONAL),
             'is_purchased'        => new external_value(PARAM_BOOL,  'current user has a completed purchase', VALUE_OPTIONAL),
             'is_enrolled'         => new external_value(PARAM_BOOL,  'current user is enrolled in the course', VALUE_OPTIONAL),
