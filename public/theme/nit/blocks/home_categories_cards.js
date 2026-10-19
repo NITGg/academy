@@ -13,7 +13,7 @@
  *   name, url
  * THE CARD IS DARK IN BOTH MODES, as in the Figma light frame: only the page
  * around it turns light. A photo needs a dark scrim for white text to read on
- * it, so the scrim (--nit-cc-scrim, black at 90%) and the ink (--nit-cc-ink,
+ * it, so the scrim (--nit-cc-scrim, black at 30%) and the ink (--nit-cc-ink,
  * white) are the card's own and do not follow the light/dark switch, and the
  * card always draws the dark-mode logo (white bars) - a category with none
  * falls back to the site's dark-mode logo. Everything AROUND the cards (page,
@@ -44,7 +44,7 @@
 
             '.nit-cc-card{position:relative;display:block;aspect-ratio:400/250;border-radius:12px;',
             'overflow:hidden;isolation:isolate;container-type:inline-size;',
-            '--nit-cc-scrim:rgba(0,0,0,.9);--nit-cc-scrim-soft:rgba(0,0,0,.9);--nit-cc-ink:#fff;',
+            '--nit-cc-scrim:rgba(0,0,0,.3);--nit-cc-scrim-soft:rgba(0,0,0,.3);--nit-cc-ink:#fff;',
             'background:#1a1a1a;color:var(--nit-cc-ink)!important;',
             'text-decoration:none!important}',
             '.nit-cc-card:focus-visible{outline:3px solid var(--nit-brand-accent);outline-offset:3px}',
