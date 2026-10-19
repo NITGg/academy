@@ -337,6 +337,10 @@ $string['altlogocompact'] = 'Compact logo for the other mode';
 $string['altlogocompact_desc'] = 'The mark shown in the navigation bar. This is the one that matters most — it is the logo on every page. Leave empty to use the compact logo above in both modes.';
 $string['altfavicon'] = 'Favicon for the other mode';
 $string['altfavicon_desc'] = 'The browser-tab icon. Leave empty to use the favicon above in both modes.';
+// Link-preview picture (og:image), on Appearance → Logos.
+$string['shareimageheading'] = 'Link preview (WhatsApp, Facebook, Telegram…)';
+$string['shareimage'] = 'Share image';
+$string['shareimage_desc'] = 'The picture shown when the site\'s address is shared in WhatsApp, Facebook, Telegram, LinkedIn and similar apps. Use an opaque PNG or JPG about 1200 × 630 px — these apps paint a transparent background white, so a white logo on a transparent background disappears. Leave empty to use the Logo above. The apps cache a preview for a while: to see a new picture straight away, share the address with something like <code>?v=2</code> on the end.';
 $string['usermenuheading'] = 'User menu (avatar)';
 $string['usermenuhide'] = 'User menu: hide core items';
 $string['usermenuhide_desc'] = 'Moodle adds these rows to the avatar menu by itself, after the <em>User menu items</em> lines above, so that box cannot remove them. Ticked rows are hidden for everybody. <em>Log out</em> is always shown. Profile, Grades and the rest are controlled by <em>User menu items</em> — delete a line there to remove it.';

@@ -179,6 +179,33 @@ if ($ADMIN->fulltree) {
             $setting->set_updatedcallback('theme_reset_all_caches');
             $logospage->add($setting);
         }
+
+        // ------------------------------------------------------------------
+        // The link-preview picture (og:image) — what WhatsApp, Facebook,
+        // Telegram and LinkedIn show when the site's address is shared. It used
+        // to be the Logo above, which is a transparent PNG drawn white for the
+        // navy bar: the apps paint transparency white, so the lettering
+        // vanished. A file of its own lets the admin give the preview an opaque
+        // card without touching the navbar logo. Empty = the Logo, as before.
+        // No SVG: none of the apps render it.
+        // ------------------------------------------------------------------
+        $logospage->add(new admin_setting_heading(
+            'theme_nit/shareimageheading',
+            get_string('shareimageheading', 'theme_nit'),
+            ''
+        ));
+        $setting = new admin_setting_configstoredfile(
+            'theme_nit/shareimage',
+            get_string('shareimage', 'theme_nit'),
+            get_string('shareimage_desc', 'theme_nit'),
+            'shareimage',
+            0,
+            ['maxfiles' => 1, 'accepted_types' => ['.png', '.jpg', '.jpeg', '.webp']]
+        );
+        // Bumps the theme revision, which is part of the file's URL — a new
+        // upload gets a new address instead of the cached old picture.
+        $setting->set_updatedcallback('theme_reset_all_caches');
+        $logospage->add($setting);
     }
 }
 

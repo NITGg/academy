@@ -239,7 +239,9 @@ if (!empty($SITE->summary)) {
     $nitogdesc = shorten_text(trim(html_to_text(
         format_text($SITE->summary, $SITE->summaryformat ?? FORMAT_HTML, ['context' => $nitsitectx]), 0, false)), 300);
 }
-$nitoglogo = $OUTPUT->get_logo_url();
+// The admin's Share image (Appearance → Logos) first: the Logo is a transparent
+// mark drawn for the navy bar, and the apps paint transparency white.
+$nitoglogo = theme_nit_share_image_url() ?: $OUTPUT->get_logo_url();
 $nitogmeta  = '<meta property="og:type" content="website">' . "\n";
 $nitogmeta .= '<meta property="og:site_name" content="' . s($nitogtitle) . '">' . "\n";
 $nitogmeta .= '<meta property="og:title" content="' . s($nitogtitle) . '">' . "\n";

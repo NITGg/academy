@@ -3875,6 +3875,30 @@ function theme_nit_logo_url(string $slot, int $maxwidth = 300, int $maxheight = 
 }
 
 /**
+ * The uploaded link-preview picture (og:image), or null when none is set.
+ *
+ * Absolute on purpose: WhatsApp and the other crawlers resolve nothing, and
+ * setting_file_url() is protocol-relative. Itemid is the theme revision, same
+ * as the per-mode logos above.
+ *
+ * @return moodle_url|null
+ */
+function theme_nit_share_image_url(): ?\moodle_url {
+    $filename = get_config('theme_nit', 'shareimage');
+    if (!is_string($filename) || $filename === '') {
+        return null;
+    }
+    return \moodle_url::make_pluginfile_url(
+        \context_system::instance()->id,
+        'theme_nit',
+        'shareimage',
+        theme_get_revision(),
+        '/',
+        ltrim($filename, '/')
+    );
+}
+
+/**
  * The master logo multiplier, as a percentage.
  *
  * Clamped rather than validated away: PARAM_INT on the setting will happily
@@ -4297,7 +4321,10 @@ function theme_nit_pluginfile($course, $cm, $context, $filearea, $args, $forcedo
         array_map(static fn($slot) => $slot['filearea'], theme_nit_auth_image_slots()),
         // The per-mode logo uploads (Appearance → Logos). Without this the file
         // saves fine and then 404s when the page asks for it.
-        array_map(static fn($v) => $v['filearea'], theme_nit_logo_variants())
+        array_map(static fn($v) => $v['filearea'], theme_nit_logo_variants()),
+        // The link-preview picture (Appearance → Logos), fetched by WhatsApp &
+        // co. without a session — which this branch never asks for.
+        ['shareimage']
     );
 
     if ($context->contextlevel == CONTEXT_SYSTEM && in_array($filearea, $areas, true)) {
