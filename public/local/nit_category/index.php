@@ -413,7 +413,6 @@ echo $OUTPUT->header();
   <!-- Category Hero Banner (X-Trade style) -->
   <style>
     @keyframes nit-gridshift { 0% { transform: translateY(0); } 100% { transform: translateY(60px); } }
-    @keyframes nit-hpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     @keyframes nit-fadeup { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes nit-fadedown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -562,10 +561,6 @@ echo $OUTPUT->header();
       margin-bottom: 1.5rem;
       animation: nit-fadedown 0.8s ease both;
     }
-    .nit-hero__badge-dot {
-      width: 8px; height: 8px; background: var(--csuccess); border-radius: 50%;
-      animation: nit-hpulse 2s infinite; flex-shrink: 0;
-    }
 
     /* H1 — Figma "الوجيستيات": 36px Bold at the 1440 design width, 26px on a phone. */
     .nit-hero__title {
@@ -657,9 +652,8 @@ echo $OUTPUT->header();
 
     <div class="nit-hero__inner">
 
-      <!-- Badge: category name with pulsing dot, and this category's icon if it has one -->
+      <!-- Badge: category name, and this category's icon if it has one -->
       <div class="nit-hero__badge">
-        <span class="nit-hero__badge-dot"></span>
         <?= local_nit_category_render_icon((int) $category->id, 'nit-cat-icon nit-cat-icon--badge', $categoryname) ?>
         <?= $categoryname ?>
       </div>
