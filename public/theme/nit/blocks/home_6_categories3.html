@@ -83,8 +83,8 @@
      ON A PHONE, below 768px, the script folds the ring into the logo above a
      two-column grid of the same shapes. Nothing to configure.
 
-     Images are prefixed with the /moodle-new/ sub-directory this site is
-     installed under. Change that prefix if wwwroot moves. -->
+     Image and link paths start at wwwroot (/theme/..., /local/...), with no
+     domain or sub-directory: filter_nitwwwroot points them at the current site. -->
 <div dir="auto"
   style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(12px, 2.5vw, 36px); overflow: hidden;">
   <!-- Artwork: the category constellation, drawn by home_hero_orbit.js.
@@ -171,7 +171,7 @@
          width above the grid rather than sitting in a blank square. -->
     <div style="height: 27%; width: auto; aspect-ratio: 1 / 1;"
         data-nit-orbit-core=""><img class="img-fluid"
-        src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+        src="/theme/nit/pix/footer-logo.png" alt="EAAC"
         data-nit-orbit-logo=""></div>
     <!-- Card template, cloned once per category. The {{placeholder}} markers
          and the data-nit-orbit-* hooks are the contract with the script -

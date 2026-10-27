@@ -108,8 +108,8 @@
      order, so one unpaired tag left from earlier content shifts every pair
      after it and prints the first heading raw.
 
-     Images are prefixed with the /moodle-new/ sub-directory this site is
-     installed under. Change that prefix if wwwroot moves. -->
+     Image and link paths start at wwwroot (/theme/..., /local/...), with no
+     domain or sub-directory: filter_nitwwwroot points them at the current site. -->
 <div dir="auto"
   style="position: relative; background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(20px, 5vw, 64px); overflow: hidden;">
   <!-- Corner controls: language swap + light/dark switch (see the note at
@@ -198,11 +198,11 @@
   <div
     style="max-width: 1230px; margin: 0 auto 40px; display: flex; align-items: center; justify-content: center;"
     data-nit-hero-brand=""> <a style="display: block; line-height: 0;"
-      href="/moodle-new/local/profilefields/page.php?page=about"
+      href="/local/profilefields/page.php?page=about"
       title="{mlang en}About us{mlang} {mlang ar}من نحن{mlang}"
       data-nit-hero-brandlink=""> <img class="img-fluid"
         style="display: block; height: clamp(120px, 16vw, 200px); width: auto; max-width: 100%; object-fit: contain; opacity: 0; transition: opacity .25s ease;"
-        src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+        src="/theme/nit/pix/footer-logo.png" alt="EAAC"
         data-nit-hero-brandmark="" data-nit-logo="compact"> </a> </div>
   <div
     style="max-width: 1230px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 40px 20px;"
@@ -232,7 +232,7 @@
         style="display: flex; align-items: center; flex-wrap: wrap; gap: 25px; margin-top: 18px;">
         <a class="nit-btn-solid"
           style="background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-primary); color: var(--nit-brand-onprimary); width: 220px; height: 60px; border-radius: 8px; font-size: 18px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;"
-          href="/moodle-new/course/index.php" data-nit-btn=""
+          href="/course/index.php" data-nit-btn=""
           data-nit-hero-cta="" data-nit-scrollto="[data-nit-categories]"> {mlang
           en}Start Now{mlang} {mlang ar}ابدأ الان{mlang} </a> <a
           style="display: inline-flex; align-items: center; gap: 4px; color: var(--nit-brand-accentwords); font-size: 18px; font-weight: 600; text-decoration: none;"
@@ -282,11 +282,11 @@
           sits at z-index 2 so it stays above the gradient rings the script
           draws as pseudo-elements. -->
         <a style="display: flex; align-items: center; justify-content: center; position: relative; z-index: 2; width: 100%; height: 100%; border-radius: 50%; line-height: 0; text-decoration: none;"
-          href="/moodle-new/local/profilefields/page.php?page=about"
+          href="/local/profilefields/page.php?page=about"
           title="{mlang en}About us{mlang} {mlang ar}من نحن{mlang}"
           data-nit-orbit-corelink=""><img class="img-fluid"
           style="display: block; position: relative; z-index: 2; width: 82%; max-width: 82%; height: auto; max-height: 82%; object-fit: contain; opacity: 0; transition: opacity .25s ease;"
-          src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+          src="/theme/nit/pix/footer-logo.png" alt="EAAC"
           data-nit-orbit-logo=""></a></div>
       <!-- Card template, cloned once per category. The {{placeholder}} markers
            and the data-nit-orbit-* hooks are the contract with the script -
@@ -327,7 +327,7 @@
           style="width: 100%; height: auto; display: block; border-radius: 12px; background: var(--nit-brand-background);"
           preload="none" playsinline="" controls="controls"
           data-nit-hero-video="">
-          <source src="/moodle-new/local/nit_media/video.php" type="video/mp4">
+          <source src="/local/nit_media/video.php" type="video/mp4">
         </video>
         <div
           style="display: none; padding: 24px; border-radius: 12px; border: 1px solid var(--nit-brand-borderprimary); background: var(--nit-brand-surface); color: var(--nit-brand-textprimary); font-size: 15px; line-height: 1.7;"

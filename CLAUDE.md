@@ -63,11 +63,11 @@ original against ours whenever Moodle or `mod_customcert` moves:
   (2026-09-15); after every `mod_customcert` update re-check the file and delete
   the line again if it is back.
 
-## Two plugins of ours that live outside `local/`
+## Plugins of ours that live outside `local/`
 
-Moodle decides where a subplugin lives, so two of ours sit under core directories.
-Both are **additive** — they add a directory, they modify nothing upstream — so
-neither is a core edit, and both are excluded from the check below:
+Moodle decides where a subplugin lives, so these of ours sit under core directories.
+All are **additive** — they add a directory, they modify nothing upstream — so
+none is a core edit, and all are excluded from the check below:
 
 - **`public/user/profile/field/phone/`** (`profilefield_phone`) — the phone profile
   field. It also owns the site's ONE country ladder,
@@ -78,6 +78,29 @@ neither is a core edit, and both are excluded from the check below:
   rung, and a caller that stops at the first one silently prices every guest on
   the default row.
 - **`public/mod/customcert/element/nitstudentname/`** — see the upgrade note above.
+- **`public/filter/nitwwwroot/`** (`filter_nitwwwroot`, *Site address links*) — keeps
+  content working across domain moves. It records every wwwroot the site has run under
+  (setting `filter_nitwwwroot/roots`, the current one added automatically on first sight)
+  and, at render, points any link under an earlier address — absolute, or root-relative
+  under an old sub-directory like `/moodle-new/` — at the current wwwroot. Installed ON
+  site-wide. So: **never write a domain or `/moodle-new` into code or block markup** —
+  write `/theme/...`, `/local/...` (wwwroot-relative, as `moodle_url` reads them).
+
+## Changing the site's domain
+
+1. Set `$CFG->wwwroot` in the server's `config.php` to the new address.
+2. The web server must serve Moodle at exactly that path. A reverse proxy that forwards
+   `/` to `/moodle-new/` inside the container leaks the inner path into `$FULLME`, and
+   every form without an explicit action (sign-up, forgot password, …) posts to a 404.
+   Check: the sign-up page's `<form action>` must start with the new wwwroot.
+3. Nothing else is required for rendered content (`filter_nitwwwroot` above). To also
+   rewrite stored data that is not rendered through filters (notification links, SEB
+   quit links, …), run core's tool — `block_nit_section` implements its
+   `global_db_replace`, so home-page sections are covered too:
+   `php admin/tool/replace/cli/replace.php --search=OLD_WWWROOT --replace=NEW_WWWROOT --non-interactive`
+   then purge caches. Settings in `config`/`config_plugins` are skipped by that tool —
+   keep menu URLs wwwroot-relative (`/index.php`), as `local_profilefields` upgrade
+   2026102700 made them.
 
 ## How to verify no core was touched
 

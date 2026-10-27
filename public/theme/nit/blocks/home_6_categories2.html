@@ -84,8 +84,8 @@
      order, so one unpaired tag left from earlier content shifts every pair
      after it.
 
-     The fallback picture is prefixed with the /moodle-new/ sub-directory this
-     site is installed under. Change that prefix if wwwroot moves. -->
+     The fallback picture path starts at wwwroot (/theme/...), with no domain or
+     sub-directory: filter_nitwwwroot points it at the current site. -->
 <div dir="auto"
   style="min-height: 100vh; min-height: 100svh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: clamp(32px, 5vh, 72px) clamp(16px, 4vw, 48px);"
   data-nit-catsection="">
@@ -95,7 +95,7 @@
       style="display: flex; align-items: center; justify-content: center; margin-bottom: clamp(24px, 4vh, 56px);"
       data-nit-brandmark=""> <img class="img-fluid"
         style="display: block; width: auto; max-width: 100%;"
-        src="/moodle-new/theme/nit/pix/footer-logo.png" alt="EAAC"
+        src="/theme/nit/pix/footer-logo.png" alt="EAAC"
         data-nit-brandmark-img="" data-nit-logo="compact"> </div>
 
     <div

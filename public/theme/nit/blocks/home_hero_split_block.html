@@ -52,9 +52,9 @@
      writing direction, so flex-end resolves to the LEFT in RTL, which is the
      opposite of the design.
 
-     Images are under theme/nit/pix/home/ and prefixed with the /moodle-new/
-     sub-directory this site is installed under, matching home_hero_block.html.
-     Change that prefix if wwwroot moves.
+     Images are under theme/nit/pix/home/. Their paths start at wwwroot
+     (/theme/...), with no domain or sub-directory: filter_nitwwwroot points
+     them at the current site.
 
      Colours read from the Brand Colors palette (--nit-brand-*), the same names
      the other home-page blocks use. --nit-brand-background is what the site
@@ -95,14 +95,14 @@
         style="display: flex; align-items: center; flex-wrap: wrap; gap: 25px;">
         <a class="nit-btn-solid"
           style="background: var(--nit-brand-primary); border: 1px solid var(--nit-brand-borderprimary); color: var(--nit-brand-textprimary); width: 220px; height: 60px; border-radius: 8px; font-size: 18px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;"
-          href="/moodle-new/course/index.php" data-nit-btn="" data-nit-hero-cta=""
+          href="/course/index.php" data-nit-btn="" data-nit-hero-cta=""
           data-nit-scrollto="[data-nit-categories]"> {mlang en}Start
           Now{mlang} {mlang ar}ابدأ الان{mlang} </a>
         <a
           style="display: inline-flex; align-items: center; gap: 4px; color: var(--nit-brand-textprimary); font-size: 18px; font-weight: 600; text-decoration: none;"
           href="#" data-nit-hero-play=""> <img
             style="flex: 0 0 auto; width: 101px; height: 101px; margin-block: -20px; margin-inline-start: -20px;"
-            src="/moodle-new/theme/nit/pix/home/hero-play.png" alt=""
+            src="/theme/nit/pix/home/hero-play.png" alt=""
             decoding="async" data-nit-hero-playdot=""> <span>{mlang en}See how
             it works{mlang} {mlang ar}شاهد كيف يعمل{mlang}</span> </a>
       </div>
@@ -111,7 +111,7 @@
     <!-- Artwork: Figma "Frame 1707480659" exported as one image -->
     <img
       style="flex: 1 1 480px; max-width: 698px; min-width: 0; height: auto; display: block;"
-      src="/moodle-new/theme/nit/pix/home/hero-collage.png"
+      src="/theme/nit/pix/home/hero-collage.png"
       alt="{mlang en}Students learning online{mlang} {mlang ar}طلاب يتعلمون عبر الإنترنت{mlang}"
       decoding="async" data-nit-hero-art="">
   </div>
@@ -131,7 +131,7 @@
         <video
           style="width: 100%; height: auto; display: block; border-radius: 12px; background: var(--nit-brand-background);"
           controls preload="none" playsinline data-nit-hero-video="">
-          <source src="/moodle-new/local/nit_media/video.php" type="video/mp4">
+          <source src="/local/nit_media/video.php" type="video/mp4">
         </video>
         <div
           style="display: none; padding: 24px; border-radius: 12px; border: 1px solid var(--nit-brand-borderprimary); background: var(--nit-brand-surface); color: var(--nit-brand-textprimary); font-size: 15px; line-height: 1.7;"
@@ -345,8 +345,8 @@
     // correct before this runs and correct if it never does - the button is a
     // working link to the catalogue either way.
     //
-    // Note the hard-coded /moodle-new/ in the href above. It is left alone here
-    // because this only ever replaces the whole value with one the server built.
+    // The href above is wwwroot-relative and filter_nitwwwroot qualifies it. This
+    // only ever replaces the whole value with one the server built.
     // ------------------------------------------------------------------
     (function() {
       var cta = document.querySelector('[data-nit-hero-cta]');
