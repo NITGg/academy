@@ -94,6 +94,19 @@ class ui {
         );
         $mform->addHelpButton('nitai_transcript', 'transcriptfile', 'local_nit_ai');
 
+        // The other way to a transcript: hand over the lesson video and let our
+        // own Whisper service write one. Offered only once that service is set up.
+        if (stt\client::is_configured()) {
+            $mform->addElement(
+                'filemanager',
+                'nitai_media',
+                get_string('sttmedia', 'local_nit_ai'),
+                null,
+                self::media_filemanager_options()
+            );
+            $mform->addHelpButton('nitai_media', 'sttmedia', 'local_nit_ai');
+        }
+
         $mform->addElement('advcheckbox', 'nitai_onscreen', get_string('hasonscreen', 'local_nit_ai'));
         $mform->addHelpButton('nitai_onscreen', 'hasonscreen', 'local_nit_ai');
         $mform->setDefault('nitai_onscreen', 0);
@@ -171,6 +184,13 @@ class ui {
         );
         $defaults['nitai_transcript'] = $draftitemid;
 
+        // Always an empty draft: the video is deleted once the service has it,
+        // so there is never a stored one to show back.
+        $mediadraftid = file_get_submitted_draft_itemid('nitai_media');
+        file_prepare_draft_area($mediadraftid, null, 'local_nit_ai', stt\manager::FILEAREA, 0,
+            self::media_filemanager_options());
+        $defaults['nitai_media'] = $mediadraftid;
+
         $record = $cmid ? api::get($cmid) : null;
         $defaults['nitai_enabled'] = $record ? (int) $record->enabled : 0;
         $defaults['nitai_onscreen'] = $record ? (int) $record->hasonscreen : 0;
@@ -186,6 +206,19 @@ class ui {
             'subdirs' => 0,
             'maxfiles' => 1,
             'accepted_types' => ['.vtt', '.srt', '.json', '.txt'],
+        ];
+    }
+
+    /**
+     * One lesson video (or its audio) to transcribe.
+     *
+     * @return array
+     */
+    protected static function media_filemanager_options(): array {
+        return [
+            'subdirs' => 0,
+            'maxfiles' => 1,
+            'accepted_types' => ['video', 'audio'],
         ];
     }
 
@@ -214,8 +247,11 @@ class ui {
         $describe = source::describe($cm);
         $status = api::status((int) $cm->id, $describe['ref'], $describe['length']);
 
+        // A video on its way to a transcript, shown above whatever is stored now.
+        $stt = ['stt' => stt\manager::panel_status((int) $cm->id)];
+
         if ($status === null) {
-            return $OUTPUT->render_from_template('local_nit_ai/review_panel', [
+            return $OUTPUT->render_from_template('local_nit_ai/review_panel', $stt + [
                 'empty' => true,
                 'notranscript' => get_string('notranscript', 'local_nit_ai'),
                 'title' => get_string('reviewtitle', 'local_nit_ai'),
@@ -224,7 +260,7 @@ class ui {
 
         $record = $status['record'];
 
-        return $OUTPUT->render_from_template('local_nit_ai/review_panel', self::quizgen_context($cm, $context) + [
+        return $OUTPUT->render_from_template('local_nit_ai/review_panel', $stt + self::quizgen_context($cm, $context) + [
             'empty' => false,
             'title' => get_string('reviewtitle', 'local_nit_ai'),
             'intro' => get_string('reviewintro', 'local_nit_ai'),

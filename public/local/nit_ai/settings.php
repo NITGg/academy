@@ -52,4 +52,26 @@ if ($hassiteconfig) {
         3,
         PARAM_INT
     ));
+
+    $settings->add(new admin_setting_heading(
+        'local_nit_ai/sttheading',
+        get_string('setting_sttheading', 'local_nit_ai'),
+        get_string('setting_sttheading_desc', 'local_nit_ai')
+    ));
+
+    // A Docker service name on the same network as Moodle, never a public address.
+    $settings->add(new admin_setting_configtext(
+        'local_nit_ai/stt_url',
+        get_string('setting_stturl', 'local_nit_ai'),
+        get_string('setting_stturl_desc', 'local_nit_ai'),
+        'http://whisper:9000',
+        PARAM_URL
+    ));
+
+    $settings->add(new admin_setting_configpasswordunmask(
+        'local_nit_ai/stt_token',
+        get_string('setting_stttoken', 'local_nit_ai'),
+        get_string('setting_stttoken_desc', 'local_nit_ai'),
+        ''
+    ));
 }

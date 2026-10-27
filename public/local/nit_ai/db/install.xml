@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/nit_ai/db" VERSION="2026090800"
-       COMMENT="NIT AI video assistant: one approved transcript per course module, plus the quiz generation runs written from it.">
+<XMLDB PATH="local/nit_ai/db" VERSION="2026102700"
+       COMMENT="NIT AI video assistant: one approved transcript per course module, the quiz generation runs written from it, and the videos being transcribed into one.">
   <TABLES>
     <TABLE NAME="local_nit_ai_transcripts" COMMENT="One transcript per course module. Keyed on cmid, NOT on a video provider, so any activity that can show a video can carry one.">
       <FIELDS>
@@ -54,6 +54,30 @@
       <INDEXES>
         <INDEX NAME="cmid_idx" UNIQUE="false" FIELDS="cmid"/>
         <INDEX NAME="cmiduser_idx" UNIQUE="false" FIELDS="cmid, userid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_nit_ai_stt" COMMENT="A lesson video being turned into a transcript by our own Whisper service. One row per course module; the video itself is never kept.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="cmid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Course module the transcript is for"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Who uploaded the video; told when the transcript is ready"/>
+        <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Name of the uploaded video; the transcript is named after it"/>
+        <FIELD NAME="enable" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Switch the assistant on when the transcript arrives, if no earlier transcript decided it"/>
+        <FIELD NAME="jobid" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Job id on the service, empty until it has the video"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending|queued|running|done|failed"/>
+        <FIELD NAME="progress" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Percent transcribed while running"/>
+        <FIELD NAME="position" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Place in the service queue while queued"/>
+        <FIELD NAME="error" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Why it failed, or why sending it is being retried"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="cmid_idx" UNIQUE="true" FIELDS="cmid"/>
+        <INDEX NAME="status_idx" UNIQUE="false" FIELDS="status"/>
       </INDEXES>
     </TABLE>
   </TABLES>

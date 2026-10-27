@@ -165,6 +165,18 @@ class api {
             content: $change['content'] ?? null,
             filename: $change['filename'] ?? ''
         );
+
+        // A lesson video to transcribe. Queued after the save above, so the
+        // transcript it produces later replaces whatever file was saved now.
+        if (stt\client::is_configured()) {
+            stt\manager::queue_from_form(
+                $context,
+                (int) $cm->id,
+                (int) ($data->course ?? 0),
+                (int) ($data->nitai_media ?? 0),
+                !empty($data->nitai_enabled)
+            );
+        }
     }
 
     /**
@@ -200,6 +212,9 @@ class api {
         // The generation runs go with it. They only describe this video, and a
         // quiz they produced stands on its own from here on.
         quizgen\run::delete_for_cm($cmid);
+
+        // So does a video still being transcribed, here and on the service.
+        stt\manager::forget($cmid);
 
         try {
             $context = \context_module::instance($cmid);

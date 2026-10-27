@@ -65,5 +65,35 @@ function xmldb_local_nit_ai_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026090800, 'local', 'nit_ai');
     }
 
+    if ($oldversion < 2026102700) {
+
+        // Lesson videos on their way to a transcript through our own Whisper service.
+        $table = new xmldb_table('local_nit_ai_stt');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('cmid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('filename', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('enable', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('jobid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, '');
+        $table->add_field('status', XMLDB_TYPE_CHAR, '16', null, XMLDB_NOTNULL, null, 'pending');
+        $table->add_field('progress', XMLDB_TYPE_INTEGER, '3', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('position', XMLDB_TYPE_INTEGER, '5', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('error', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('cmid_idx', XMLDB_INDEX_UNIQUE, ['cmid']);
+        $table->add_index('status_idx', XMLDB_INDEX_NOTUNIQUE, ['status']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026102700, 'local', 'nit_ai');
+    }
+
     return true;
 }

@@ -24,6 +24,7 @@
     * title - panel heading
     * empty - true when no transcript has been uploaded yet
     * notranscript - message shown when empty
+    * stt - optional {text, failed}: a video being turned into a transcript
 
     Example context (json):
     {
@@ -35,6 +36,12 @@
 <div class="nitai-review card mb-3" data-region="nitai-review">
     <div class="card-body">
         <h3 class="h6 mb-2">{{title}}</h3>
+
+        {{#stt}}
+            <div class="alert {{#failed}}alert-warning{{/failed}}{{^failed}}alert-info{{/failed}} mb-3" role="status">
+                {{text}}
+            </div>
+        {{/stt}}
 
         {{#empty}}
             <p class="text-muted mb-0">{{notranscript}}</p>
