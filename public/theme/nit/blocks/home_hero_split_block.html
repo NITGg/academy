@@ -52,9 +52,9 @@
      writing direction, so flex-end resolves to the LEFT in RTL, which is the
      opposite of the design.
 
-     Images are under theme/nit/pix/home/. Their paths start at wwwroot
-     (/theme/...), with no domain or sub-directory: filter_nitwwwroot points
-     them at the current site.
+     Images are under theme/nit/pix/home/. Their paths are
+     wwwroot-relative (/theme/...): never put a domain in them, so the block
+     keeps working when the domain changes.
 
      Colours read from the Brand Colors palette (--nit-brand-*), the same names
      the other home-page blocks use. --nit-brand-background is what the site
@@ -345,7 +345,7 @@
     // correct before this runs and correct if it never does - the button is a
     // working link to the catalogue either way.
     //
-    // The href above is wwwroot-relative and filter_nitwwwroot qualifies it. This
+    // The href above is wwwroot-relative, like every link in this block. This
     // only ever replaces the whole value with one the server built.
     // ------------------------------------------------------------------
     (function() {

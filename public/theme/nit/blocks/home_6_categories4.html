@@ -71,8 +71,8 @@
      content (v2)" filter ON - the same as home_6_categories2.html. Paste into an
      EMPTY block.
 
-     The fallback logo path starts at wwwroot (/theme/...), with no domain or
-     sub-directory: filter_nitwwwroot points it at the current site. -->
+     The fallback logo path is wwwroot-relative (/theme/...): never put a
+     domain in it, so the block keeps working when the domain changes. -->
 <div
   style="position: relative; overflow: hidden; background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(16px, 4vw, 48px) clamp(40px, 6vw, 80px);"
   data-nit-catcards="">

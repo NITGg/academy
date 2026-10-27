@@ -108,8 +108,8 @@
      order, so one unpaired tag left from earlier content shifts every pair
      after it and prints the first heading raw.
 
-     Image and link paths start at wwwroot (/theme/..., /local/...), with no
-     domain or sub-directory: filter_nitwwwroot points them at the current site. -->
+     Image and link paths are wwwroot-relative (/theme/..., /local/...): never
+     put a domain in them, so the block keeps working when the domain changes. -->
 <div dir="auto"
   style="position: relative; background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(20px, 5vw, 64px); overflow: hidden;">
   <!-- Corner controls: language swap + light/dark switch (see the note at

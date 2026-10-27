@@ -83,8 +83,8 @@
      ON A PHONE, below 768px, the script folds the ring into the logo above a
      two-column grid of the same shapes. Nothing to configure.
 
-     Image and link paths start at wwwroot (/theme/..., /local/...), with no
-     domain or sub-directory: filter_nitwwwroot points them at the current site. -->
+     Image and link paths are wwwroot-relative (/theme/..., /local/...): never
+     put a domain in them, so the block keeps working when the domain changes. -->
 <div dir="auto"
   style="background: var(--nit-brand-background); color: var(--nit-brand-textprimary); padding: 64px clamp(12px, 2.5vw, 36px); overflow: hidden;">
   <!-- Artwork: the category constellation, drawn by home_hero_orbit.js.
