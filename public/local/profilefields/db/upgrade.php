@@ -335,6 +335,15 @@ function xmldb_local_profilefields_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026091300, 'local', 'profilefields');
     }
 
+    if ($oldversion < 2026102700) {
+        // The navbar's Main / About us / Contact us lines were written as full
+        // URLs under the old .../moodle-new sub-directory. The site now lives at
+        // the domain root, so every one of them answered 404. Make them
+        // wwwroot-relative so they follow the site wherever it is installed.
+        local_profilefields_relativise_menu_urls();
+        upgrade_plugin_savepoint(true, 2026102700, 'local', 'profilefields');
+    }
+
     // Not a versioned step, and deliberately so: it has to run on every upgrade,
     // because the thing it repairs is created by an upgrade. Registering a new
     // web-service function does not put it on the hand-made service a site's own
@@ -377,5 +386,43 @@ function local_profilefields_repoint_usermenu_profile(): void {
 
     if ($changed) {
         set_config('customusermenuitems', implode("\n", $lines));
+    }
+}
+
+/**
+ * Make the custom menu URLs relative to wwwroot.
+ *
+ * Rewrites, in the core `custommenuitems` and `customusermenuitems` settings, any
+ * URL that points under the old `/moodle-new` sub-directory - absolute
+ * (`https://host/moodle-new/index.php`) or root-relative (`/moodle-new/index.php`) -
+ * to its wwwroot-relative form (`/index.php`). moodle_url prefixes a leading `/`
+ * with $CFG->wwwroot, so the link is right whatever the domain or sub-directory.
+ * Every other line is left exactly as the administrator wrote it.
+ */
+function local_profilefields_relativise_menu_urls(): void {
+    foreach (['custommenuitems', 'customusermenuitems'] as $name) {
+        $current = (string) get_config('core', $name);
+        if ($current === '') {
+            continue;
+        }
+
+        $changed = false;
+        $lines = preg_split('/\r?\n/', $current);
+        foreach ($lines as $i => $line) {
+            $parts = explode('|', $line);
+            if (!isset($parts[1])) {
+                continue;
+            }
+            $url = preg_replace('#^\s*(?:https?://[^/]+)?/moodle-new(?=[/?\#]|\s*$)#i', '', $parts[1]);
+            if ($url !== $parts[1]) {
+                $parts[1] = (trim($url) === '' || $url[0] !== '/') ? '/' . ltrim($url) : $url;
+                $lines[$i] = implode('|', $parts);
+                $changed = true;
+            }
+        }
+
+        if ($changed) {
+            set_config($name, implode("\n", $lines));
+        }
     }
 }

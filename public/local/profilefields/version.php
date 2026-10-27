@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_profilefields';
-$plugin->version   = 2026091601;        // YYYYMMDDXX - About page: hero video is an uploaded file (pagevideo area), Browse courses opens the catalogue, get_static_page about.{video.mimetype,coursesurl,contacturl}.
+$plugin->version   = 2026102700;        // YYYYMMDDXX - Navbar menu URLs made wwwroot-relative (old /moodle-new sub-directory answered 404 at the domain root).
 $plugin->requires  = 2024100700;        // Moodle 4.5 LTS baseline.
 $plugin->supported = [405, 502];        // Supported branch range: 4.5 LTS .. 5.2.
 $plugin->maturity  = MATURITY_STABLE;

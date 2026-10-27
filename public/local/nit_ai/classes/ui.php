@@ -37,7 +37,7 @@ class ui {
      * transcript stays stored and approved, and the ask web service is
      * untouched. Flip this to false to bring the drawer back.
      */
-    const CHAT_DRAWER_HIDDEN = true;
+    const CHAT_DRAWER_HIDDEN = false;
 
     /**
      * Temporary kill switch for the "Smart assistant" section of the activity
@@ -51,7 +51,7 @@ class ui {
      * Everything stored stays exactly as it is. Flip this to false to bring
      * the section back.
      */
-    const FORM_HIDDEN = true;
+    const FORM_HIDDEN = false;
 
     /**
      * Temporary kill switch for the teacher's "Smart assistant — transcript
@@ -61,7 +61,7 @@ class ui {
      * quiz generator page and every stored row stay as they are. Flip this to
      * false to bring the panel back.
      */
-    const REVIEW_PANEL_HIDDEN = true;
+    const REVIEW_PANEL_HIDDEN = false;
 
     /**
      * Add the assistant's fields to an activity form.
