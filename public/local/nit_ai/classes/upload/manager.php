@@ -237,8 +237,13 @@ class manager {
     }
 
     /**
-     * Delete the file once nobody needs it: the provider has it, and no
-     * transcription is still waiting to send it.
+     * Delete the file once nobody needs it: the provider has it, the form has
+     * been saved, and no transcription is still waiting to send it.
+     *
+     * The push usually finishes before the teacher clicks Save — it starts the
+     * moment the last chunk is in — and until the form is saved nobody has asked
+     * for the transcript yet. An upload that is never claimed is left to
+     * cleanup(), which removes it after a day.
      *
      * @param int $uploadid
      * @return void
@@ -247,7 +252,7 @@ class manager {
         global $DB;
 
         $row = $DB->get_record(self::TABLE, ['id' => $uploadid]);
-        if (!$row || $row->status !== 'pushed') {
+        if (!$row || $row->status !== 'pushed' || (int) $row->cmid === 0) {
             return;
         }
         if ($DB->record_exists(\local_nit_ai\stt\manager::TABLE, ['uploadid' => $uploadid, 'status' => 'pending'])) {

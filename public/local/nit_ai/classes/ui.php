@@ -324,13 +324,16 @@ class ui {
         $defaults['nitai_media'] = $mediadraftid;
 
         $record = $cmid ? api::get($cmid) : null;
-        $defaults['nitai_enabled'] = $record ? (int) $record->enabled : 0;
-        $defaults['nitai_onscreen'] = $record ? (int) $record->hasonscreen : 0;
+        $auto = stt\client::is_configured();
 
-        // A new activity starts on "written from the video" whenever that is on
-        // offer: it is the choice that needs nothing from the teacher.
-        $defaults['nitai_source'] = $record ? $record->source
-            : (stt\client::is_configured() ? api::SOURCE_AUTO : api::SOURCE_FILE);
+        // A new activity starts with the assistant on and "written from the video"
+        // whenever that is on offer. The Video section sits above this one, and a
+        // teacher who picks the file before scrolling down would otherwise send it
+        // straight to the provider, with nothing left here to transcribe. Students
+        // still see nothing until the transcript is approved.
+        $defaults['nitai_enabled'] = $record ? (int) $record->enabled : (int) $auto;
+        $defaults['nitai_onscreen'] = $record ? (int) $record->hasonscreen : 0;
+        $defaults['nitai_source'] = $record ? $record->source : ($auto ? api::SOURCE_AUTO : api::SOURCE_FILE);
         $defaults['nitai_uploadtoken'] = '';
     }
 
