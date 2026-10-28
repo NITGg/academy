@@ -197,8 +197,13 @@ try {
             $loginusername = required_param('username', PARAM_USERNAME);
             $loginpassword = required_param('password', PARAM_RAW);
             $loginservice  = required_param('service', PARAM_ALPHANUMEXT);
+            // Optional, from app builds that know the device limit (local_nit_devices).
+            $logindevice   = \core_text::substr(optional_param('deviceid', '', PARAM_ALPHANUMEXT), 0, 64);
+            $logindevname  = optional_param('devicename', '', PARAM_TEXT);
+            $loginplatform = optional_param('platform', '', PARAM_ALPHANUMEXT);
             try {
-                $data = \local_academy\login_manager::login($loginusername, $loginpassword, $loginservice);
+                $data = \local_academy\login_manager::login($loginusername, $loginpassword, $loginservice,
+                    $logindevice, $logindevname, $loginplatform);
             } catch (\moodle_exception $e) {
                 academy_fail_exception($e);
             }

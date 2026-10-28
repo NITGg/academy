@@ -30,12 +30,16 @@
  *                         on the very first authorisation, so send it then.
  *                         Form-encoded: firstname / lastname.
  *   service  (optional) - external service shortname, defaults to moodle_mobile_app.
+ *   deviceid, devicename, platform (optional) - the app install, for the device limit
+ *                         (local_nit_devices): {"error":"devicelimit","message","maxdevices"}
+ *                         when the account already uses all its devices.
  *
  * @package    local_appleauth
  * @copyright  2026 NIT Academy
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_appleauth\account;
 use local_appleauth\apple_token;
 use local_appleauth\auth_error;
 
@@ -46,7 +50,6 @@ define('REQUIRE_CORRECT_ACCESS', true);
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/moodlelib.php');
 require_once($CFG->libdir . '/filelib.php');
-require_once($CFG->dirroot . '/user/lib.php');
 
 /**
  * Per-IP request throttle. Approximate sliding window backed by MUC; a small
@@ -72,108 +75,6 @@ function local_appleauth_rate_limit(int $maxperminute): void {
         header('Retry-After: ' . max(1, $entry['reset'] - $now));
         throw new auth_error('rate_limited', 429);
     }
-}
-
-/**
- * Never-deliverable address for an Apple account that hid its e-mail
- * (`.invalid` is reserved, RFC 2606).
- *
- * @param string $sub Apple subject
- * @return string
- */
-function local_appleauth_placeholder_email(string $sub): string {
-    return 'apple.' . substr(preg_replace('/[^a-zA-Z0-9]/', '', $sub), 0, 120) . '@privaterelay.invalid';
-}
-
-/**
- * Find the Moodle account for an Apple profile, creating it when allowed.
- *
- * By Apple subject first — Apple may stop sending the e-mail after the first
- * login — then by verified e-mail (links an existing account), else created.
- *
- * @param \stdClass $profile from apple_token::verify()
- * @param string $firstname name the app forwarded ('' if none)
- * @param string $lastname
- * @param \stdClass $config plugin config
- * @return array [user record, bool is_new]
- * @throws auth_error
- */
-function local_appleauth_resolve_user(\stdClass $profile, string $firstname, string $lastname, \stdClass $config): array {
-    global $CFG, $DB;
-
-    $where = ['deleted' => 0, 'mnethostid' => $CFG->mnet_localhost_id];
-    $link = $DB->get_record('local_appleauth_links', ['sub' => $profile->sub]);
-    $user = $link ? $DB->get_record('user', ['id' => $link->userid] + $where) : false;
-
-    if (!$user && $profile->email && $profile->email_verified) {
-        if ($DB->count_records('user', ['email' => $profile->email] + $where) > 1) {
-            throw new auth_error('email_not_unique', 409);
-        }
-        $user = $DB->get_record('user', ['email' => $profile->email] + $where);
-    }
-
-    $isnew = false;
-    if (!$user) {
-        if (empty($config->allowcreate)) {
-            throw new auth_error('user_not_found', 404);
-        }
-        // An address another account already uses must not be taken over.
-        $email = $profile->email;
-        if (!$email || $DB->record_exists('user', ['email' => $email] + $where)) {
-            $email = local_appleauth_placeholder_email($profile->sub);
-        }
-
-        $localpart = ($profile->email && !$profile->is_private_email) ? strstr($profile->email, '@', true) : '';
-        $base = \core_user::clean_field($localpart, 'username');
-        if (empty($base)) {
-            $base = 'apple' . core_text::strtolower(substr(preg_replace('/[^a-zA-Z0-9]/', '', $profile->sub), 0, 12));
-        }
-        $username = $base;
-        for ($i = 1; $DB->record_exists('user', ['username' => $username, 'mnethostid' => $CFG->mnet_localhost_id]); $i++) {
-            $username = $base . $i;
-        }
-
-        $newuser = (object) [
-            'auth' => !empty($config->newuserauth) ? $config->newuserauth : 'oauth2',
-            'confirmed' => 1,
-            'mnethostid' => $CFG->mnet_localhost_id,
-            'username' => $username,
-            'email' => $email,
-            'firstname' => $firstname !== '' ? $firstname : 'Apple',
-            'lastname' => $lastname !== '' ? $lastname : 'User',
-            'lang' => $CFG->lang ?? 'en',
-        ];
-        $user = $DB->get_record('user', ['id' => user_create_user($newuser, false, true)], '*', MUST_EXIST);
-        $isnew = true;
-    } else if ($profile->email && $profile->email_verified
-            && substr($user->email, -strlen('@privaterelay.invalid')) === '@privaterelay.invalid'
-            && !$DB->record_exists('user', ['email' => $profile->email] + $where)) {
-        // Replace the placeholder once Apple does share a verified address.
-        $DB->set_field('user', 'email', $profile->email, ['id' => $user->id]);
-        $user->email = $profile->email;
-    }
-
-    // SSO link policy (same as local_googleauth): only accounts whose auth method
-    // is allowed may be signed into via Apple, so a Sign in with Apple cannot take
-    // over a local password account that merely shares the e-mail.
-    $allowedlinkauth = array_filter(array_map('trim', explode(',', (string) ($config->allowedlinkauth ?? 'oauth2'))));
-    if (!in_array($user->auth, $allowedlinkauth ?: ['oauth2'], true)) {
-        throw new auth_error('auth_not_linkable', 403);
-    }
-
-    $now = time();
-    if ($link) {
-        $DB->update_record('local_appleauth_links', (object) [
-            'id' => $link->id, 'userid' => $user->id, 'email' => $profile->email ?? $link->email, 'timemodified' => $now,
-        ]);
-    } else {
-        $DB->insert_record('local_appleauth_links', (object) [
-            'userid' => $user->id, 'sub' => $profile->sub, 'email' => $profile->email,
-            'timecreated' => $now, 'timemodified' => $now,
-        ]);
-    }
-
-    return [$user, $isnew];
 }
 
 header('Content-Type: application/json; charset=utf-8');
@@ -240,33 +141,35 @@ try {
     $audiences = array_values(array_filter(preg_split('/[\s,]+/', (string) ($config->clientids ?? ''))));
     $profile = apple_token::verify($idtoken, $audiences, $nonce !== '' ? $nonce : null);
 
-    [$user, $isnew] = local_appleauth_resolve_user($profile, $firstname, $lastname, $config);
-
-    // Standard account gates (mirror /login/token.php).
-    if (isguestuser($user)) {
-        throw new auth_error('guest_not_allowed', 403);
-    }
-    if (!empty($user->suspended)) {
-        throw new auth_error('user_suspended', 403);
-    }
-    if (empty($user->confirmed)) {
-        throw new auth_error('user_not_confirmed', 403);
-    }
+    [$user, $isnew] = account::resolve($profile, $firstname, $lastname, $config);
+    account::require_can_login($user);
     $systemcontext = context_system::instance();
-    if (!empty($CFG->maintenance_enabled)
-            && !has_capability('moodle/site:maintenanceaccess', $systemcontext, $user)) {
-        throw new auth_error('site_maintenance', 503);
-    }
 
     $service = $DB->get_record('external_services', ['shortname' => $serviceshortname, 'enabled' => 1]);
     if (!$service) {
         throw new auth_error('service_not_available', 404);
     }
 
-    // Set the current user and mint the web service token.
+    // Set the current user and mint the web service token: with the install's
+    // `deviceid` (new app builds), that device's own (local_nit_devices), so the
+    // device limit can sign one phone out on its own.
     enrol_check_plugins($user);
     \core\session\manager::set_user($user);
-    $token = \core_external\util::generate_token_for_current_user($service);
+    $deviceid = core_text::substr(clean_param($field('deviceid'), PARAM_ALPHANUMEXT), 0, 64);
+    $devices = class_exists('\local_nit_devices\manager') && \local_nit_devices\manager::enabled();
+    if ($devices && $deviceid !== '') {
+        try {
+            $token = \local_nit_devices\manager::issue_token($user, $service, $deviceid,
+                clean_param($field('devicename'), PARAM_TEXT), clean_param($field('platform'), PARAM_ALPHANUMEXT));
+        } catch (\local_nit_devices\device_limit_exception $e) {
+            throw new auth_error('devicelimit', 200, ['message' => $e->getMessage(), 'maxdevices' => $e->max]);
+        }
+    } else if ($devices && !\local_nit_devices\manager::legacy_login_allowed()) {
+        throw new auth_error('appupdaterequired', 200,
+            ['message' => get_string('appupdaterequired', 'local_nit_devices')]);
+    } else {
+        $token = \core_external\util::generate_token_for_current_user($service);
+    }
     \core_external\util::log_token_request($token);
 
     // A reused token row without a privatetoken breaks tool_mobile_get_autologin_key

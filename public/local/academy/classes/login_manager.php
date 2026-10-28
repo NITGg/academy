@@ -34,10 +34,14 @@ class login_manager {
      * @param string $username username, or email when $CFG->authloginviaemail is on
      * @param string $password the password as typed
      * @param string $service shortname of the external service to issue a token for
+     * @param string $deviceid the app install's id (local_nit_devices); '' from older app builds
+     * @param string $devicename e.g. "Samsung SM-A515F"
+     * @param string $platform android / ios
      * @return array token payload for the JSON envelope
      * @throws \moodle_exception on any failure, carrying a message meant for the user
      */
-    public static function login(string $username, string $password, string $service): array {
+    public static function login(string $username, string $password, string $service, string $deviceid = '',
+            string $devicename = '', string $platform = ''): array {
         global $CFG, $DB, $USER;
 
         if (empty($CFG->enablewebservices)) {
@@ -101,9 +105,21 @@ class login_manager {
             throw self::fail('servicenotavailable', 'servicenotavailable', 'webservice');
         }
 
-        // Core mints the token: same table, same reuse and expiry rules, so the
-        // ws_diagnose CLI and every other token tool keep working unchanged.
-        $token = \core_external\util::generate_token_for_current_user($servicerecord);
+        // With the device limit on (local_nit_devices), an app that sends its install
+        // id gets that device's own token, so one phone can be signed out alone; a
+        // full account throws errorcode "devicelimit". Without an id, core mints the
+        // token as token.php does and the plugin counts every old-app phone as one
+        // device - unless the admin has switched the old app off.
+        $devices = class_exists('\local_nit_devices\manager') && \local_nit_devices\manager::enabled();
+        if ($devices && $deviceid !== '') {
+            $token = \local_nit_devices\manager::issue_token($user, $servicerecord, $deviceid, $devicename, $platform);
+        } else if ($devices && !\local_nit_devices\manager::legacy_login_allowed()) {
+            throw self::fail('appupdaterequired', 'appupdaterequired', 'local_nit_devices');
+        } else {
+            // Core mints the token: same table, same reuse and expiry rules, so the
+            // ws_diagnose CLI and every other token tool keep working unchanged.
+            $token = \core_external\util::generate_token_for_current_user($servicerecord);
+        }
         $privatetoken = $token->privatetoken;
         \core_external\util::log_token_request($token);
 
