@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/nit_ai/db" VERSION="2026102700"
+<XMLDB PATH="local/nit_ai/db" VERSION="2026102800"
        COMMENT="NIT AI video assistant: one approved transcript per course module, the quiz generation runs written from it, and the videos being transcribed into one.">
   <TABLES>
     <TABLE NAME="local_nit_ai_transcripts" COMMENT="One transcript per course module. Keyed on cmid, NOT on a video provider, so any activity that can show a video can carry one.">

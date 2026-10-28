@@ -95,5 +95,18 @@ function xmldb_local_nit_ai_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026102700, 'local', 'nit_ai');
     }
 
+    if ($oldversion < 2026102800) {
+
+        // The client site (eaacgrouplms/app) dropped this table in its own
+        // 2026102701 when automatic transcripts were taken back to development.
+        // A database copied from it skips the step above, so put the table back
+        // here — and on any site that still has it, leave it alone.
+        if (!$dbman->table_exists('local_nit_ai_stt')) {
+            $dbman->install_one_table_from_xmldb_file(__DIR__ . '/install.xml', 'local_nit_ai_stt');
+        }
+
+        upgrade_plugin_savepoint(true, 2026102800, 'local', 'nit_ai');
+    }
+
     return true;
 }

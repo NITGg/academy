@@ -36,6 +36,10 @@ desktop.ini
 /Dockerfile
 /docker-compose.yml
 /php-moodle.ini
+# Secrets for docker compose (DB passwords, WHISPER_TOKEN).
+/.env
+# A site's own uploaded files when moodledata sits inside the checkout.
+/moodledata/
 
 # ===== Local DB / data snapshots (large, environment-specific) =====
 /moodle_backup.sql
