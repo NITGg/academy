@@ -34,20 +34,29 @@ class mod_vdocipher_mod_form extends moodleform_mod {
         $mform->addElement('header', 'videosource', get_string('videosource', 'vdocipher'));
         $mform->setExpanded('videosource', true);
 
-        // Browser → S3 uploader (no bytes through PHP).
+        // Browser → S3 uploader (no bytes through PHP) — unless the AI assistant
+        // is to write the transcript from this video, in which case local_nit_ai's
+        // chunked uploader takes the file to our server instead (see the script).
         $credurl = (new moodle_url('/local/vdocipher/upload_credentials.php'))->out(false);
         $courseid = (int) $COURSE->id;
         $sesskey  = sesskey();
-        $struploading = get_string('videofile', 'vdocipher');
+
+        // The script's messages, in the page language; {$a} is filled in by the script.
+        $strings = [];
+        foreach (['choose', 'requesting', 'progress', 'done', 'failed', 'neterror', 'nocreds', 'error'] as $key) {
+            $strings[$key] = get_string('upload_' . $key, 'vdocipher', '{$a}');
+        }
 
         $uploaderhtml = '
 <div id="vdo-uploader" data-credurl="' . s($credurl) . '" data-courseid="' . $courseid . '" data-sesskey="' . s($sesskey) . '"
+     data-strings="' . s(json_encode($strings, JSON_UNESCAPED_UNICODE)) . '"
      style="border:1px dashed var(--bs-border-color,#adb5bd);border-radius:.5rem;padding:1rem;margin:.25rem 0;">
   <input type="file" id="vdo-file" accept="video/*" style="display:block;margin-bottom:.5rem;">
   <div style="background:var(--bs-secondary-bg,#e9ecef);border-radius:.25rem;height:8px;overflow:hidden;margin:.5rem 0;">
     <div id="vdo-bar" style="height:8px;width:0;background:var(--bs-primary,#0d6efd);transition:width .2s;"></div>
   </div>
-  <div id="vdo-status" style="font-size:.9em;color:var(--bs-secondary-color,#6c757d);">Choose a video to upload it securely to VdoCipher.</div>
+  <div id="vdo-status" style="font-size:.9em;color:var(--bs-secondary-color,#6c757d);">'
+            . s(get_string('upload_choose', 'vdocipher')) . '</div>
 </div>';
         $mform->addElement('static', 'videouploader', get_string('videofile', 'vdocipher'), $uploaderhtml);
         $mform->addHelpButton('videouploader', 'videofile', 'vdocipher');
@@ -117,16 +126,46 @@ class mod_vdocipher_mod_form extends moodleform_mod {
     var courseid = box.getAttribute('data-courseid');
     var sesskey  = box.getAttribute('data-sesskey');
 
+    var str = JSON.parse(box.getAttribute('data-strings') || '{}');
+
     function say(msg) { status.textContent = msg; }
+    function t(key, a) { return (str[key] || key).replace('{$a}', a === undefined ? '' : a); }
+
+    // The AI assistant (local_nit_ai/js/upload.js) takes the video through our
+    // server when the transcript is to be written from it.
+    function viaserver() { return !!(window.NITAI_UPLOAD && window.NITAI_UPLOAD.wants()); }
+
+    // Before anything is chosen, say which way the file will go — it changes with
+    // the AI assistant's settings further down the form.
+    var busy = false;
+    function idle() {
+        if (!busy) { say(viaserver() ? window.NITAI_UPLOAD.route : t('choose')); }
+    }
+    document.addEventListener('change', function (e) {
+        if (e.target && /^nitai_(enabled|source)$/.test(e.target.name || '')) { idle(); }
+    });
+    window.addEventListener('load', idle);
 
     input.addEventListener('change', function () {
         var file = input.files && input.files[0];
         if (!file) { return; }
+        busy = true;
         bar.style.width = '0';
-        say('Requesting secure upload…');
 
         var nameEl = document.querySelector('input[name="name"]');
         var title = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : file.name;
+
+        if (viaserver()) {
+            window.NITAI_UPLOAD.upload(file, title, {
+                status: say,
+                progress: function (pct, msg) { bar.style.width = pct + '%'; say(msg); },
+                done: function (videoid, msg) { field.value = videoid; bar.style.width = '100%'; say(msg); },
+                error: say
+            });
+            return;
+        }
+
+        say(t('requesting'));
 
         var cred = new FormData();
         cred.append('sesskey', sesskey);
@@ -137,7 +176,7 @@ class mod_vdocipher_mod_form extends moodleform_mod {
             .then(function (r) { return r.json(); })
             .then(function (d) {
                 if (d.error || !d.videoId || !d.clientPayload || !d.clientPayload.uploadLink) {
-                    throw new Error(d.error || 'No upload credentials returned');
+                    throw new Error(d.error || t('nocreds'));
                 }
                 var p = d.clientPayload;
                 var s3 = new FormData();
@@ -154,22 +193,22 @@ class mod_vdocipher_mod_form extends moodleform_mod {
                     if (e.lengthComputable) {
                         var pct = Math.round(e.loaded / e.total * 100);
                         bar.style.width = pct + '%';
-                        say('Uploading… ' + pct + '%');
+                        say(t('progress', pct));
                     }
                 };
                 xhr.onload = function () {
                     if (xhr.status >= 200 && xhr.status < 300) {
                         field.value = d.videoId;
                         bar.style.width = '100%';
-                        say('Uploaded ✓ — video id set. Click Save to finish.');
+                        say(t('done'));
                     } else {
-                        say('Upload failed (HTTP ' + xhr.status + '). Try again or paste a video id.');
+                        say(t('failed', xhr.status));
                     }
                 };
-                xhr.onerror = function () { say('Upload error (network/CORS). Try again or paste a video id.'); };
+                xhr.onerror = function () { say(t('neterror')); };
                 xhr.send(s3);
             })
-            .catch(function (err) { say('Error: ' + err.message); });
+            .catch(function (err) { say(t('error', err.message)); });
     });
 })();
 </script>

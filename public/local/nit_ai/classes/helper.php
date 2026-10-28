@@ -43,6 +43,57 @@ class helper {
     }
 
     /**
+     * Write cues out as a WebVTT file.
+     *
+     * The inverse of transcript_parser for what we keep: whole-second start and
+     * end times and plain text. Used when a teacher corrects a transcript, so the
+     * stored file and the stored cues stay one and the same.
+     *
+     * @param array $cues list of ['s' => int, 'e' => int, 't' => string]
+     * @return string
+     */
+    public static function to_vtt(array $cues): string {
+        $out = "WEBVTT\n\n";
+        foreach ($cues as $cue) {
+            $start = max(0, (int) $cue['s']);
+            $end = max($start, (int) $cue['e']);
+            $out .= self::vtt_time($start) . ' --> ' . self::vtt_time($end) . "\n" . trim($cue['t']) . "\n\n";
+        }
+        return $out;
+    }
+
+    /**
+     * Seconds as a WebVTT timestamp, HH:MM:SS.000.
+     *
+     * @param int $seconds
+     * @return string
+     */
+    protected static function vtt_time(int $seconds): string {
+        return sprintf('%02d:%02d:%02d.000', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);
+    }
+
+    /**
+     * Replace the stored transcript file with new content.
+     *
+     * @param \context $context module context
+     * @param string $filename
+     * @param string $content
+     * @return void
+     */
+    public static function store_file(\context $context, string $filename, string $content): void {
+        $fs = get_file_storage();
+        $fs->delete_area_files($context->id, 'local_nit_ai', api::FILEAREA);
+        $fs->create_file_from_string([
+            'contextid' => $context->id,
+            'component' => 'local_nit_ai',
+            'filearea'  => api::FILEAREA,
+            'itemid'    => 0,
+            'filepath'  => '/',
+            'filename'  => $filename,
+        ], $content);
+    }
+
+    /**
      * Read the uploaded transcript out of a form's draft file area.
      *
      * @param int $draftitemid

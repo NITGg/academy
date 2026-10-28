@@ -19,6 +19,16 @@ $string['videoid']           = 'VdoCipher video ID';
 $string['videoid_help']      = 'Filled automatically after an upload finishes. You can also paste the ID of a video that already exists in your VdoCipher account instead of uploading.';
 $string['err_novideosource'] = 'Add a video: upload a file or paste a VdoCipher video ID.';
 
+// Uploader messages (shown by the form's script).
+$string['upload_choose']     = 'Choose a video to upload it securely to VdoCipher.';
+$string['upload_requesting'] = 'Requesting a secure upload…';
+$string['upload_progress']   = 'Uploading… {$a}%';
+$string['upload_done']       = 'Uploaded ✓ — the video ID is set. Click Save to finish.';
+$string['upload_failed']     = 'Upload failed (HTTP {$a}). Try again, or paste a video ID.';
+$string['upload_neterror']   = 'Upload error (network). Try again, or paste a video ID.';
+$string['upload_nocreds']    = 'No upload credentials were returned.';
+$string['upload_error']      = 'Error: {$a}';
+
 // Index.
 $string['noinstances']       = 'There are no VdoCipher Videos in this course.';
 

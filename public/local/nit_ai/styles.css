@@ -159,6 +159,69 @@
     color: var(--nit-brand-textprimary, #212529);
 }
 
+.nitai-review-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+/* ── Transcript editor ───────────────────────────────────────────────────── */
+
+.nitai-editor-lines {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+/* Time beside its line; on a phone the time sits above it. */
+.nitai-editor-line {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    gap: .75rem;
+    align-items: start;
+}
+
+.nitai-editor-time {
+    padding-top: .45rem;
+    font-size: .875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--nit-brand-textsecondary, #6c757d);
+    direction: ltr;
+    text-align: end;
+}
+
+.nitai-editor-line textarea {
+    resize: vertical;
+    line-height: 1.6;
+}
+
+/* Kept in reach on a long transcript: the page can run to hundreds of lines. */
+.nitai-editor-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: 1rem;
+    padding: .75rem 0;
+    background: var(--nit-brand-background, #fff);
+    border-top: 1px solid var(--nit-brand-borderprimary, #dee2e6);
+}
+
+@media (max-width: 575.98px) {
+    .nitai-editor-line {
+        grid-template-columns: minmax(0, 1fr);
+        gap: .25rem;
+    }
+
+    .nitai-editor-time {
+        padding-top: 0;
+        text-align: start;
+    }
+}
+
 /* Side by side once there is room; stacked on a phone. */
 @media (min-width: 992px) {
     .nitai-video-layout {

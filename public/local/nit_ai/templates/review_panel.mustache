@@ -71,12 +71,15 @@
                 </div>
             {{/hasproblems}}
 
-            {{#canapprove}}
-                <div class="mt-3">
+            <div class="nitai-review-actions mt-3">
+                {{#canapprove}}
                     <a href="{{approveurl}}" class="btn btn-primary btn-sm">{{approvelabel}}</a>
-                    <span class="text-muted small ms-2">{{intro}}</span>
-                </div>
-            {{/canapprove}}
+                {{/canapprove}}
+                <a href="{{editurl}}" class="btn btn-secondary btn-sm">{{editlabel}}</a>
+                {{#canapprove}}
+                    <span class="text-muted small">{{intro}}</span>
+                {{/canapprove}}
+            </div>
 
             {{#showquizgen}}
                 <div class="nitai-quizgen-offer mt-3 pt-3 border-top">

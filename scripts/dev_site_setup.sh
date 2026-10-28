@@ -145,8 +145,10 @@ networks:
     driver: bridge
 EOF
 
-echo "== 3/7 Uploaded files (moodledata)"
+echo "== 3/7 Uploaded files (moodledata) and plugins kept out of git"
 cp -a "$PROD/moodledata" ./moodledata
+# filter_multilang2 is git-ignored, so a clone lacks it and every {mlang} shows raw.
+cp -a "$PROD/public/filter/multilang2" ./public/filter/
 rm -rf moodledata/cache/* moodledata/localcache/* moodledata/sessions/* moodledata/temp/* moodledata/lock/* 2>/dev/null || true
 
 echo "== 4/7 Database copy"

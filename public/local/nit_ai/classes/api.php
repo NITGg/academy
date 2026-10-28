@@ -41,6 +41,12 @@ class api {
     /** @var int Tolerated gap, in seconds, between the last cue and the video's end. */
     public const LENGTH_TOLERANCE = 120;
 
+    /** @var string Transcript written from the video by our transcription service. */
+    public const SOURCE_AUTO = 'auto';
+
+    /** @var string Transcript file uploaded by the teacher. */
+    public const SOURCE_FILE = 'file';
+
     /**
      * Fetch the transcript row for a course module.
      *
@@ -67,6 +73,7 @@ class api {
      * @param bool $hasonscreen the transcript includes on-screen text
      * @param string|null $content raw transcript file, or null to keep the stored one
      * @param string $filename original name, used as a format hint
+     * @param string|null $source SOURCE_AUTO or SOURCE_FILE, or null to keep the stored one
      * @return void
      */
     public static function save(
@@ -78,7 +85,8 @@ class api {
         bool $enabled,
         bool $hasonscreen,
         ?string $content = null,
-        string $filename = ''
+        string $filename = '',
+        ?string $source = null
     ): void {
         global $DB, $USER;
 
@@ -97,6 +105,9 @@ class api {
         $record->enabled      = (int) $enabled;
         $record->hasonscreen  = (int) $hasonscreen;
         $record->timemodified = $now;
+        if ($source !== null) {
+            $record->source = $source;
+        }
 
         if ($content !== null) {
             $parsed = transcript_parser::parse($content, $filename);
@@ -151,31 +162,52 @@ class api {
         }
 
         $context = \context_module::instance((int) $cm->id);
-        $change = helper::save_draft_and_detect_change($context, (int) ($data->nitai_transcript ?? 0));
         $describe = source::describe($cm);
+        $cmid = (int) $cm->id;
+        $courseid = (int) ($data->course ?? 0);
+        $enabled = !empty($data->nitai_enabled);
+
+        // "Written from the video" is only on offer while the transcription
+        // service is set up; without it every transcript is an uploaded file.
+        $source = (($data->nitai_source ?? '') === self::SOURCE_AUTO && stt\client::is_configured())
+            ? self::SOURCE_AUTO : self::SOURCE_FILE;
+
+        // The file picker only counts when the teacher chose to upload a file:
+        // in "written from the video" mode it is hidden, and whatever it holds
+        // is the transcript that is already stored.
+        $change = $source === self::SOURCE_FILE
+            ? helper::save_draft_and_detect_change($context, (int) ($data->nitai_transcript ?? 0))
+            : null;
 
         self::save(
-            cmid: (int) $cm->id,
-            courseid: (int) ($data->course ?? 0),
+            cmid: $cmid,
+            courseid: $courseid,
             component: 'mod_' . $cm->modname,
             sourceref: $describe['ref'],
             sourcelength: $describe['length'],
-            enabled: !empty($data->nitai_enabled),
-            hasonscreen: !empty($data->nitai_onscreen),
+            enabled: $enabled,
+            hasonscreen: $source === self::SOURCE_FILE && !empty($data->nitai_onscreen),
             content: $change['content'] ?? null,
-            filename: $change['filename'] ?? ''
+            filename: $change['filename'] ?? '',
+            source: $source
         );
 
-        // A lesson video to transcribe. Queued after the save above, so the
-        // transcript it produces later replaces whatever file was saved now.
-        if (stt\client::is_configured()) {
-            stt\manager::queue_from_form(
-                $context,
-                (int) $cm->id,
-                (int) ($data->course ?? 0),
-                (int) ($data->nitai_media ?? 0),
-                !empty($data->nitai_enabled)
-            );
+        if ($source !== self::SOURCE_AUTO) {
+            return;
+        }
+
+        // The video to transcribe. Preferably the one just uploaded through this
+        // server for this very activity (sent once, going to the provider too);
+        // otherwise one handed to the "video to transcribe" picker, for a lesson
+        // whose video is already on the provider. Queued after the save above, so
+        // the transcript it produces replaces whatever is stored now.
+        $token = clean_param((string) ($data->nitai_uploadtoken ?? ''), PARAM_ALPHANUM);
+        $upload = $token !== '' ? upload\manager::claim($token, $cmid, $describe['ref']) : null;
+
+        if ($upload) {
+            stt\manager::queue_from_upload($cmid, $courseid, $upload, $enabled);
+        } else {
+            stt\manager::queue_from_form($context, $cmid, $courseid, (int) ($data->nitai_media ?? 0), $enabled);
         }
     }
 

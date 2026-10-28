@@ -148,6 +148,34 @@ class api_client {
             throw new api_exception('Unexpected upload-credentials response', 0, json_encode($creds));
         }
 
+        // Give the request room but never let it hang forever (a hung request
+        // is killed by the web server → blank 500). Raise PHP's clock to match.
+        \core_php_time_limit::raise(300);
+        $this->push_file($payload, $filepath, 180);
+        return $videoid;
+    }
+
+    /**
+     * Send a file to the S3 form that get_upload_credentials() handed out.
+     *
+     * Split from upload() so a caller can take the video id first — and give
+     * it to someone who is waiting — then push the bytes later, from cron, with
+     * as long a timeout as a large lesson needs.
+     *
+     * @param array $payload the 'clientPayload' from get_upload_credentials()
+     * @param string $filepath absolute path to a readable video file
+     * @param int $timeout seconds the transfer may take
+     * @return void
+     * @throws api_exception on any failure
+     */
+    public function push_file(array $payload, string $filepath, int $timeout): void {
+        if (!is_file($filepath) || !is_readable($filepath)) {
+            throw new api_exception('Upload file not readable: ' . $filepath);
+        }
+        if (empty($payload['uploadLink'])) {
+            throw new api_exception('Upload credentials carry no upload link');
+        }
+
         // Forward EVERY field VdoCipher signed into the policy (policy, key,
         // x-amz-*, success_action_redirect, …) — cherry-picking a subset drops
         // fields the S3 policy requires and the POST is rejected (HTTP 403).
@@ -169,16 +197,12 @@ class api_client {
         }
         $fields['file'] = new \CURLFile(realpath($filepath));
 
-        // Give the request room but never let it hang forever (a hung request
-        // is killed by the web server → blank 500). Raise PHP's clock to match.
-        \core_php_time_limit::raise(300);
-
         $ch = curl_init($payload['uploadLink']);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 180);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
         $resp = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err  = curl_error($ch);
@@ -190,7 +214,6 @@ class api_client {
         if (!in_array($code, [200, 201, 204], true)) {
             throw new api_exception('S3 upload rejected', $code, (string) $resp);
         }
-        return $videoid;
     }
 
     // ── Transport ────────────────────────────────────────────────────────────

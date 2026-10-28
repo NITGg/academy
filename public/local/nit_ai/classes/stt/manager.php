@@ -74,8 +74,6 @@ class manager {
      */
     public static function queue_from_form(\context $context, int $cmid, int $courseid, int $draftitemid,
             bool $enable): bool {
-        global $DB, $USER;
-
         if (!$draftitemid || !self::draft_has_file($draftitemid)) {
             return false;
         }
@@ -90,13 +88,47 @@ class manager {
             return false;
         }
 
+        self::queue($cmid, $courseid, $file->get_filename(), $enable, 0);
+        return true;
+    }
+
+    /**
+     * Start transcribing a video that came through the chunked upload
+     * (\local_nit_ai\upload\manager) — the same file that is going to the
+     * video provider, so the teacher sent it only once.
+     *
+     * @param int $cmid
+     * @param int $courseid
+     * @param \stdClass $upload a claimed local_nit_ai_uploads row
+     * @param bool $enable switch the assistant on when the transcript arrives
+     * @return void
+     */
+    public static function queue_from_upload(int $cmid, int $courseid, \stdClass $upload, bool $enable): void {
+        self::forget($cmid);
+        self::queue($cmid, $courseid, $upload->filename, $enable, (int) $upload->id);
+    }
+
+    /**
+     * Write the request row and queue the task that sends the video.
+     *
+     * @param int $cmid
+     * @param int $courseid
+     * @param string $filename
+     * @param bool $enable
+     * @param int $uploadid 0 when the video is in the media file area
+     * @return void
+     */
+    protected static function queue(int $cmid, int $courseid, string $filename, bool $enable, int $uploadid): void {
+        global $DB, $USER;
+
         $now = time();
         $DB->insert_record(self::TABLE, (object) [
             'cmid'         => $cmid,
             'courseid'     => $courseid,
             'userid'       => (int) $USER->id,
-            'filename'     => \core_text::substr($file->get_filename(), 0, 255),
+            'filename'     => \core_text::substr($filename, 0, 255),
             'enable'       => (int) $enable,
+            'uploadid'     => $uploadid,
             'jobid'        => '',
             'status'       => 'pending',
             'progress'     => 0,
@@ -109,8 +141,6 @@ class manager {
         $task = new \local_nit_ai\task\stt_submit();
         $task->set_custom_data(['cmid' => $cmid]);
         \core\task\manager::queue_adhoc_task($task, true);
-
-        return true;
     }
 
     /**
@@ -121,20 +151,26 @@ class manager {
      * @throws \moodle_exception when the service cannot take it yet, so the task retries
      */
     public static function submit(int $cmid): void {
+        global $DB;
+
         $row = self::get($cmid);
         if (!$row || $row->status !== 'pending') {
             return; // Replaced or removed since it was queued.
         }
 
         $context = \context_module::instance($cmid);
-        $file = self::stored_media($context);
-        if (!$file) {
+        $upload = $row->uploadid ? $DB->get_record(\local_nit_ai\upload\manager::TABLE, ['id' => $row->uploadid]) : null;
+        $uploadpath = $upload ? \local_nit_ai\upload\manager::path($upload) : '';
+        $file = $upload ? null : self::stored_media($context);
+
+        if ($upload ? !is_readable($uploadpath) : !$file) {
             self::update($row, ['status' => 'failed', 'error' => get_string('stt_err_nomedia', 'local_nit_ai')]);
             return;
         }
 
         try {
-            $job = (new client())->submit($file);
+            $client = new client();
+            $job = $upload ? $client->submit_path($uploadpath, $upload->filename) : $client->submit($file);
         } catch (\Throwable $e) {
             // Shown on the panel while the task keeps retrying, so a service
             // that is down reads as "down", not as a queue that never moves.
@@ -148,7 +184,13 @@ class manager {
             'position' => (int) ($job['position'] ?? 0),
             'error'    => '',
         ]);
-        get_file_storage()->delete_area_files($context->id, 'local_nit_ai', self::FILEAREA);
+
+        if ($upload) {
+            // The service has its copy; the file goes once the provider has one too.
+            \local_nit_ai\upload\manager::release((int) $upload->id);
+        } else {
+            get_file_storage()->delete_area_files($context->id, 'local_nit_ai', self::FILEAREA);
+        }
     }
 
     /**
@@ -242,16 +284,7 @@ class manager {
         $context = \context_module::instance((int) $cm->id);
         $filename = pathinfo($row->filename, PATHINFO_FILENAME) . '.vtt';
 
-        $fs = get_file_storage();
-        $fs->delete_area_files($context->id, 'local_nit_ai', api::FILEAREA);
-        $fs->create_file_from_string([
-            'contextid' => $context->id,
-            'component' => 'local_nit_ai',
-            'filearea'  => api::FILEAREA,
-            'itemid'    => 0,
-            'filepath'  => '/',
-            'filename'  => $filename,
-        ], $vtt);
+        \local_nit_ai\helper::store_file($context, $filename, $vtt);
 
         $existing = api::get((int) $cm->id);
         $describe = source::describe($cm);
@@ -266,7 +299,8 @@ class manager {
             // Whisper hears the lesson; it does not read the screen.
             hasonscreen: false,
             content: $vtt,
-            filename: $filename
+            filename: $filename,
+            source: api::SOURCE_AUTO
         );
 
         // Saved from cron, so api::save() stamped the cron user. The teacher who

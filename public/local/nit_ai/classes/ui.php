@@ -66,24 +66,72 @@ class ui {
     /**
      * Add the assistant's fields to an activity form.
      *
-     * Three controls, and only one of them is a question the teacher has to
-     * think about — the other two are the switch and the file. Everything else
-     * about the transcript is detected and shown back for confirmation.
+     * One switch and one question — where the transcript comes from — and only
+     * the controls that answer belongs to are shown:
+     *
+     *   written from the video  the video uploaded in the section above goes
+     *                           through this server and is transcribed; for a
+     *                           lesson already on the provider, a picker takes
+     *                           the video again just for transcribing
+     *   uploaded by the teacher the transcript file picker, as before
+     *
+     * Either way the result waits for the teacher's review, and once there is
+     * one the form says so and links to where it can be read and corrected.
      *
      * @param \MoodleQuickForm $mform
      * @param object|null $cm the course module being edited, null while creating
      * @return void
      */
     public static function add_form_elements(\MoodleQuickForm $mform, ?object $cm = null): void {
+        global $COURSE, $PAGE;
+
         if (self::FORM_HIDDEN) {
             return;
         }
+
+        $cmid = ($cm && !empty($cm->id)) ? (int) $cm->id : 0;
+        $auto = stt\client::is_configured();
 
         $mform->addElement('header', 'nitaiheader', get_string('formheader', 'local_nit_ai'));
 
         $mform->addElement('advcheckbox', 'nitai_enabled', get_string('enabled', 'local_nit_ai'));
         $mform->addHelpButton('nitai_enabled', 'enabled', 'local_nit_ai');
         $mform->setDefault('nitai_enabled', 0);
+
+        self::add_current_transcript($mform, $cmid);
+
+        if ($auto) {
+            $mform->addGroup([
+                $mform->createElement('radio', 'nitai_source', '', get_string('source_auto', 'local_nit_ai'), api::SOURCE_AUTO),
+                $mform->createElement('radio', 'nitai_source', '', get_string('source_file', 'local_nit_ai'), api::SOURCE_FILE),
+            ], 'nitai_sourcegroup', get_string('source', 'local_nit_ai'), '<br>', false);
+            $mform->addHelpButton('nitai_sourcegroup', 'source', 'local_nit_ai');
+            $mform->hideIf('nitai_sourcegroup', 'nitai_enabled', 'notchecked');
+
+            // What "written from the video" means for this form, plus the settings
+            // js/upload.js reads to send the video above through this server.
+            $mform->addElement('static', 'nitai_autohint', '', self::upload_config_html((int) $COURSE->id));
+            $mform->hideIf('nitai_autohint', 'nitai_enabled', 'notchecked');
+            $mform->hideIf('nitai_autohint', 'nitai_source', 'neq', api::SOURCE_AUTO);
+
+            $mform->addElement('hidden', 'nitai_uploadtoken', '');
+            $mform->setType('nitai_uploadtoken', PARAM_ALPHANUM);
+
+            // A lesson whose video is already on the provider: we cannot fetch it
+            // back from there, so it has to be handed over once more to be heard.
+            if ($cmid) {
+                $mform->addElement('filemanager', 'nitai_media', get_string('sttmedia', 'local_nit_ai'), null,
+                    self::media_filemanager_options());
+                $mform->addHelpButton('nitai_media', 'sttmedia', 'local_nit_ai');
+                $mform->hideIf('nitai_media', 'nitai_enabled', 'notchecked');
+                $mform->hideIf('nitai_media', 'nitai_source', 'neq', api::SOURCE_AUTO);
+            }
+
+            $PAGE->requires->js(new \moodle_url('/local/nit_ai/js/upload.js'));
+        } else {
+            $mform->addElement('hidden', 'nitai_source', api::SOURCE_FILE);
+            $mform->setType('nitai_source', PARAM_ALPHA);
+        }
 
         $mform->addElement(
             'filemanager',
@@ -93,26 +141,110 @@ class ui {
             self::filemanager_options()
         );
         $mform->addHelpButton('nitai_transcript', 'transcriptfile', 'local_nit_ai');
-
-        // The other way to a transcript: hand over the lesson video and let our
-        // own Whisper service write one. Offered only once that service is set up.
-        if (stt\client::is_configured()) {
-            $mform->addElement(
-                'filemanager',
-                'nitai_media',
-                get_string('sttmedia', 'local_nit_ai'),
-                null,
-                self::media_filemanager_options()
-            );
-            $mform->addHelpButton('nitai_media', 'sttmedia', 'local_nit_ai');
-        }
+        $mform->hideIf('nitai_transcript', 'nitai_enabled', 'notchecked');
 
         $mform->addElement('advcheckbox', 'nitai_onscreen', get_string('hasonscreen', 'local_nit_ai'));
         $mform->addHelpButton('nitai_onscreen', 'hasonscreen', 'local_nit_ai');
         $mform->setDefault('nitai_onscreen', 0);
         $mform->hideIf('nitai_onscreen', 'nitai_enabled', 'notchecked');
 
+        if ($auto) {
+            // Whisper hears the lesson; it does not read the screen. Both only
+            // mean something for a file the teacher wrote or exported.
+            $mform->hideIf('nitai_transcript', 'nitai_source', 'neq', api::SOURCE_FILE);
+            $mform->hideIf('nitai_onscreen', 'nitai_source', 'neq', api::SOURCE_FILE);
+        }
+
         self::add_quizgen_element($mform, $cm);
+    }
+
+    /**
+     * What is stored for this activity right now, and the way to read and
+     * correct it — before any question about where a new one should come from.
+     *
+     * @param \MoodleQuickForm $mform
+     * @param int $cmid 0 while creating
+     * @return void
+     */
+    protected static function add_current_transcript(\MoodleQuickForm $mform, int $cmid): void {
+        if (!$cmid) {
+            return;
+        }
+
+        $record = api::get($cmid);
+        $inflight = stt\manager::panel_status($cmid);
+        if (!$record && !$inflight) {
+            return;
+        }
+
+        $html = '';
+        if ($inflight) {
+            $html .= \html_writer::div(s($inflight['text']),
+                'alert ' . ($inflight['failed'] ? 'alert-warning' : 'alert-info') . ' mb-2');
+        }
+        if ($record) {
+            $html .= \html_writer::tag('p', self::summary($record), ['class' => 'mb-2']);
+            // A new tab: this form has unsaved changes the teacher would lose.
+            $html .= \html_writer::link(self::editor_url($cmid), get_string('viewedit', 'local_nit_ai'), [
+                'class'  => 'btn btn-secondary btn-sm',
+                'target' => '_blank',
+                'rel'    => 'noopener',
+            ]);
+        }
+
+        $mform->addElement('static', 'nitai_current', get_string('currenttranscript', 'local_nit_ai'), $html);
+    }
+
+    /**
+     * One line describing a stored transcript.
+     *
+     * @param \stdClass $record
+     * @return string
+     */
+    protected static function summary(\stdClass $record): string {
+        $a = (object) [
+            'segments' => (int) $record->segmentcount,
+            'last'     => helper::timecode((int) $record->lasttimestamp),
+            'source'   => get_string($record->source === api::SOURCE_AUTO ? 'summary_auto' : 'summary_file', 'local_nit_ai'),
+            'status'   => get_string($record->approved ? 'summary_approved' : 'summary_notapproved', 'local_nit_ai'),
+        ];
+        return get_string($record->hastimestamps ? 'summary' : 'summary_notimes', 'local_nit_ai', $a);
+    }
+
+    /**
+     * Where a transcript is read and corrected.
+     *
+     * @param int $cmid
+     * @return \moodle_url
+     */
+    public static function editor_url(int $cmid): \moodle_url {
+        return new \moodle_url('/local/nit_ai/transcript.php', ['cmid' => $cmid]);
+    }
+
+    /**
+     * The "written from the video" explanation, carrying what js/upload.js
+     * needs to send the video through this server.
+     *
+     * @param int $courseid
+     * @return string
+     */
+    protected static function upload_config_html(int $courseid): string {
+        $strings = [];
+        foreach (['route', 'starting', 'progress', 'finishing', 'done', 'failed', 'retrying'] as $key) {
+            $strings[$key] = get_string('up_' . $key, 'local_nit_ai', '{$a}');
+        }
+
+        return \html_writer::div(
+            \html_writer::tag('p', get_string('autohint', 'local_nit_ai'), ['class' => 'text-muted mb-0']),
+            'nitai-autohint',
+            [
+                'id'           => 'nitai-upload',
+                'data-url'     => (new \moodle_url('/local/nit_ai/upload.php'))->out(false),
+                'data-courseid' => $courseid,
+                'data-sesskey' => sesskey(),
+                'data-strings' => json_encode($strings, JSON_UNESCAPED_UNICODE),
+            ]
+        );
     }
 
     /**
@@ -194,6 +326,12 @@ class ui {
         $record = $cmid ? api::get($cmid) : null;
         $defaults['nitai_enabled'] = $record ? (int) $record->enabled : 0;
         $defaults['nitai_onscreen'] = $record ? (int) $record->hasonscreen : 0;
+
+        // A new activity starts on "written from the video" whenever that is on
+        // offer: it is the choice that needs nothing from the teacher.
+        $defaults['nitai_source'] = $record ? $record->source
+            : (stt\client::is_configured() ? api::SOURCE_AUTO : api::SOURCE_FILE);
+        $defaults['nitai_uploadtoken'] = '';
     }
 
     /**
@@ -278,6 +416,9 @@ class ui {
                 'cmid' => (int) $cm->id,
                 'sesskey' => sesskey(),
             ]))->out(false),
+            // Reviewing means reading it: the text itself is one click away.
+            'editurl' => self::editor_url((int) $cm->id)->out(false),
+            'editlabel' => get_string('viewedit', 'local_nit_ai'),
         ]);
     }
 

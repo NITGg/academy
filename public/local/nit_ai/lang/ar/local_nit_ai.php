@@ -156,8 +156,58 @@ $string['setting_maxgappasses_desc'] = 'بعد التمريرة الأولى، �
 $string['quizgen_span'] = 'اتقرا من نص مقسوم لـ {$a->parts} جزء وبينتهي عند {$a->end}، لفيديو مدته {$a->video}.';
 
 // Automatic transcripts (our own Whisper service).
-$string['sttmedia'] = 'فيديو الدرس للتفريغ التلقائي';
-$string['sttmedia_help'] = 'مفيش ملف نص؟ ارفع فيديو الدرس (أو الصوت بتاعه) هنا والموقع هيكتب منه نص بتوقيتات على السيرفر بتاعنا — من غير مزوّد ذكاء اصطناعي ومن غير تكلفة على كل فيديو. بياخد تقريبًا قد مدة الفيديو، وممكن يكون فيه فيديوهات قبله في الطابور. لما يخلص، النص بيحل محل الملف اللي فوق، وبيوصلك إشعار، ويستنى اعتمادك زي أي نص مرفوع. الفيديو بيتمسح بعد التفريغ.';
+$string['sttmedia'] = 'فيديو للتفريغ (لدرس مرفوع قبل كده)';
+$string['sttmedia_help'] = 'لدرس الفيديو بتاعه موجود على VdoCipher أصلًا: مبنقدرش ناخده من هناك، فارفع نفس الفيديو (أو الصوت بس) هنا عشان يتكتب منه النص. مش محتاجه لو رفعت الفيديو في قسم «الفيديو» فوق والاختيار ده متفعّل. الملف بيتمسح بعد التفريغ.';
+
+// Where the transcript comes from (activity form).
+$string['source'] = 'نص الفيديو';
+$string['source_help'] = 'يتكتب من الفيديو: الفيديو اللي بترفعه في قسم «الفيديو» فوق بيعدّي على السيرفر بتاعنا، وبيتكتب منه نص بتوقيتات — من غير مزوّد ذكاء اصطناعي ومن غير تكلفة على كل فيديو. بياخد تقريبًا قد مدة الفيديو؛ بيوصلك إشعار لما يجهز، وتقدر تقراه وتصلّحه قبل ما تعتمده.
+
+ارفع ملف نص: لو عندك أصلًا نص للفيديو ده بصيغة ‎.vtt أو ‎.srt أو ‎.json أو ‎.txt.';
+$string['source_auto'] = 'يتكتب من الفيديو تلقائيًا (وإنت تراجعه وتعتمده)';
+$string['source_file'] = 'أرفع ملف النص بنفسي';
+$string['autohint'] = 'ارفع الفيديو في قسم «الفيديو» فوق: بيترفع مرة واحدة على سيرفرنا، واحنا بنرفعه على VdoCipher وبنكتب منه النص. هيوصلك إشعار لما النص يبقى جاهز للمراجعة.';
+$string['currenttranscript'] = 'النص الحالي';
+$string['viewedit'] = 'عرض وتعديل النص';
+$string['summary'] = '{$a->segments} سطر، لحد {$a->last} — {$a->source}، {$a->status}';
+$string['summary_notimes'] = 'نص من غير توقيتات — {$a->source}، {$a->status}';
+$string['summary_auto'] = 'اتكتب من الفيديو';
+$string['summary_file'] = 'ملف مرفوع';
+$string['summary_approved'] = 'معتمد';
+$string['summary_notapproved'] = 'مستني اعتمادك';
+
+// Upload through this server (js/upload.js, upload.php).
+$string['up_route'] = 'المساعد الذكي هيكتب النص من الفيديو ده، فهيترفع على سيرفرنا الأول ومنه يتبعت لـ VdoCipher.';
+$string['up_starting'] = 'جاري تجهيز الرفع…';
+$string['up_progress'] = 'جاري الرفع… {$a}%';
+$string['up_finishing'] = 'جاري إنهاء الرفع وإنشاء الفيديو على VdoCipher…';
+$string['up_done'] = 'اترفع ✓ — رقم الفيديو اتحط. اضغط حفظ: الفيديو هيتبعت لـ VdoCipher والنص هيتكتب منه.';
+$string['up_failed'] = 'الرفع فشل: {$a}';
+$string['up_retrying'] = 'مشكلة في الاتصال — بنعيد الجزء ده ({$a})…';
+$string['upload_err_noprovider'] = 'VdoCipher مش متظبط على الموقع ده، فمش هينفع نرفع الفيديو.';
+$string['upload_err_provider'] = 'VdoCipher مقبلش الفيديو الجديد: {$a}';
+$string['upload_err_size'] = 'لازم الفيديو يكون أصغر من {$a}.';
+$string['upload_err_state'] = 'الرفع ده خلص بالفعل.';
+$string['upload_err_offset'] = 'جزء وصل بترتيب غلط؛ بنكمّل من البايت {$a}.';
+$string['upload_err_write'] = 'جزء من الفيديو متحفظش على السيرفر.';
+$string['upload_err_notfound'] = 'الرفع ده مبقاش موجود. اختار الفيديو تاني.';
+$string['task_uploadpush'] = 'إرسال فيديو درس مرفوع لـ VdoCipher';
+$string['task_uploadcleanup'] = 'مسح فيديوهات الدروس المرفوعة اللي محدش هيستخدمها';
+
+// Transcript editor (transcript.php).
+$string['editortitle'] = 'نص الفيديو';
+$string['editorintro'] = 'كل سطر ظاهر قدام توقيته في الفيديو. صلّح أي غلطة في مكانها وبعدين احفظ. أي تعديل محتاج اعتماد تاني قبل ما الطلبة يشوفوه — «حفظ واعتماد» بيعمل الاتنين.';
+$string['editor_time'] = 'التوقيت';
+$string['editor_text'] = 'السطر عند';
+$string['editor_filter'] = 'دوّر على كلمة في النص';
+$string['editor_save'] = 'حفظ';
+$string['editor_saveapprove'] = 'حفظ واعتماد';
+$string['editor_saved'] = 'اتحفظ. اعتمد النص لما تبقى راضي عنه.';
+$string['editor_savedapproved'] = 'اتحفظ واتعتمد — الطلبة يقدروا يستخدموا المساعد.';
+$string['editor_empty'] = 'النص مينفعش يكون فاضي.';
+$string['editor_back'] = 'رجوع للدرس';
+
+// Transcription progress.
 $string['stt_status_pending'] = 'الفيديو وصل — جاري إرساله للتفريغ.';
 $string['stt_status_retrying'] = 'لسه مقدرناش نوصل لخدمة التفريغ؛ هنحاول تاني كمان شوية. ({$a})';
 $string['stt_status_queued'] = 'مستني دوره في التفريغ — رقم {$a} في الطابور.';

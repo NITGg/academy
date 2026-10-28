@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/nit_ai/db" VERSION="2026102800"
+<XMLDB PATH="local/nit_ai/db" VERSION="2026102801"
        COMMENT="NIT AI video assistant: one approved transcript per course module, the quiz generation runs written from it, and the videos being transcribed into one.">
   <TABLES>
     <TABLE NAME="local_nit_ai_transcripts" COMMENT="One transcript per course module. Keyed on cmid, NOT on a video provider, so any activity that can show a video can carry one.">
@@ -14,6 +14,7 @@
         <FIELD NAME="lang" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Detected language: ar|en|mixed|unknown"/>
         <FIELD NAME="hastimestamps" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="hasonscreen" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Teacher says the transcript includes on-screen text (code, slides)"/>
+        <FIELD NAME="source" TYPE="char" LENGTH="8" NOTNULL="true" DEFAULT="file" SEQUENCE="false" COMMENT="Where the teacher wants the transcript from: auto (written from the video) or file (uploaded)"/>
         <FIELD NAME="segmentcount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="lasttimestamp" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Last cue start in seconds; compared against sourcelength"/>
         <FIELD NAME="segments" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON array of {s,e,t} cues"/>
@@ -64,6 +65,7 @@
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Who uploaded the video; told when the transcript is ready"/>
         <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Name of the uploaded video; the transcript is named after it"/>
         <FIELD NAME="enable" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Switch the assistant on when the transcript arrives, if no earlier transcript decided it"/>
+        <FIELD NAME="uploadid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="local_nit_ai_uploads row holding the video when it came through our chunked upload; 0 when it is in the media file area"/>
         <FIELD NAME="jobid" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Job id on the service, empty until it has the video"/>
         <FIELD NAME="status" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending|queued|running|done|failed"/>
         <FIELD NAME="progress" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Percent transcribed while running"/>
@@ -78,6 +80,31 @@
       <INDEXES>
         <INDEX NAME="cmid_idx" UNIQUE="true" FIELDS="cmid"/>
         <INDEX NAME="status_idx" UNIQUE="false" FIELDS="status"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_nit_ai_uploads" COMMENT="A lesson video uploaded in chunks to this server, on its way to VdoCipher and to the transcription service. The file is deleted once both have it.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="token" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false" COMMENT="Random handle the browser uploads against and the form submits"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Who is uploading; only they may add to it or claim it"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="cmid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Set when the activity form is saved; 0 until then"/>
+        <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false"/>
+        <FIELD NAME="filesize" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Bytes the browser said it would send"/>
+        <FIELD NAME="received" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Bytes written so far; the next chunk must start here"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="uploading" SEQUENCE="false" COMMENT="uploading|uploaded|pushed|failed"/>
+        <FIELD NAME="videoid" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="VdoCipher video id, known as soon as the upload completes"/>
+        <FIELD NAME="payload" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON of the VdoCipher S3 form, until the file has been pushed"/>
+        <FIELD NAME="error" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Why pushing to VdoCipher failed or is being retried"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="token_idx" UNIQUE="true" FIELDS="token"/>
+        <INDEX NAME="cmid_idx" UNIQUE="false" FIELDS="cmid"/>
       </INDEXES>
     </TABLE>
   </TABLES>

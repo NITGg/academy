@@ -70,4 +70,41 @@ class source {
     public static function adapter(object $cm): string {
         return ($cm->modname ?? '') === 'vdocipher' ? 'vdocipher' : '';
     }
+
+    /**
+     * Open a new video on the provider, ready to receive a file from this server.
+     *
+     * Two halves on purpose: the id comes back at once, so the teacher's form can
+     * be filled and saved, while the bytes go later from cron (push_upload()).
+     *
+     * @param string $title shown in the provider's dashboard
+     * @return array ['videoid' => string, 'payload' => array]
+     * @throws \moodle_exception when the provider is not set up or refuses
+     */
+    public static function start_upload(string $title): array {
+        if (!\local_vdocipher\api_client::is_configured()) {
+            throw new \moodle_exception('upload_err_noprovider', 'local_nit_ai');
+        }
+        $creds = (new \local_vdocipher\api_client())->get_upload_credentials($title);
+        $videoid = (string) ($creds['videoId'] ?? '');
+        $payload = $creds['clientPayload'] ?? [];
+        if ($videoid === '' || empty($payload['uploadLink'])) {
+            throw new \moodle_exception('upload_err_provider', 'local_nit_ai', '', 'no upload credentials');
+        }
+        return ['videoid' => $videoid, 'payload' => $payload];
+    }
+
+    /**
+     * Send the file to the video start_upload() opened.
+     *
+     * @param array $payload from start_upload()
+     * @param string $path the assembled video on this server
+     * @return void
+     * @throws \moodle_exception
+     */
+    public static function push_upload(array $payload, string $path): void {
+        $client = new \local_vdocipher\api_client();
+        // An hour of lesson can be a gigabyte; give the transfer the time it needs.
+        $client->push_file($payload, $path, 3 * HOURSECS);
+    }
 }

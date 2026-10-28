@@ -156,8 +156,58 @@ $string['setting_maxgappasses_desc'] = 'After the first pass, how many extra req
 $string['quizgen_span'] = 'Read from a transcript of {$a->parts} parts ending at {$a->end}, for a video that runs {$a->video}.';
 
 // Automatic transcripts (our own Whisper service).
-$string['sttmedia'] = 'Lesson video to transcribe';
-$string['sttmedia_help'] = 'No transcript file? Upload the lesson video (or its audio) here and the site writes a timed transcript from it on our own server — no AI provider and no cost per video. It takes roughly as long as the video runs, and other videos may be ahead of it in the queue. When it is ready the transcript replaces the file above, you get a notification, and it waits for your approval like any uploaded transcript. The video is deleted once it has been transcribed.';
+$string['sttmedia'] = 'Video to transcribe (lesson already uploaded)';
+$string['sttmedia_help'] = 'For a lesson whose video is already on VdoCipher: we cannot fetch it back from there, so upload the same video (or just its audio) here to have the transcript written from it. Not needed when you upload the video in the Video section above with this option on. The file is deleted once it has been transcribed.';
+
+// Where the transcript comes from (activity form).
+$string['source'] = 'Transcript';
+$string['source_help'] = 'Written from the video: the video you upload in the Video section above goes through this server, and a timed transcript is written from it — no AI provider and no cost per video. It takes roughly as long as the video runs; you get a notification when it is ready, and you can read and correct it before approving it.
+
+Upload a transcript file: you already have a .vtt, .srt, .json or .txt transcript of this video.';
+$string['source_auto'] = 'Write it from the video automatically (you review and approve it)';
+$string['source_file'] = 'Upload a transcript file myself';
+$string['autohint'] = 'Upload the video in the Video section above: it is sent once, to this server, which puts it on VdoCipher and writes the transcript from it. You will be notified when the transcript is ready to review.';
+$string['currenttranscript'] = 'Current transcript';
+$string['viewedit'] = 'View and edit the transcript';
+$string['summary'] = '{$a->segments} lines, up to {$a->last} — {$a->source}, {$a->status}';
+$string['summary_notimes'] = 'Plain text without timestamps — {$a->source}, {$a->status}';
+$string['summary_auto'] = 'written from the video';
+$string['summary_file'] = 'uploaded file';
+$string['summary_approved'] = 'approved';
+$string['summary_notapproved'] = 'waiting for your approval';
+
+// Upload through this server (js/upload.js, upload.php).
+$string['up_route'] = 'The AI assistant will write the transcript from this video, so it is uploaded to our server first and sent on to VdoCipher from there.';
+$string['up_starting'] = 'Preparing the upload…';
+$string['up_progress'] = 'Uploading… {$a}%';
+$string['up_finishing'] = 'Finishing the upload and creating the video on VdoCipher…';
+$string['up_done'] = 'Uploaded ✓ — the video ID is set. Click Save: the video goes on to VdoCipher and the transcript is written from it.';
+$string['up_failed'] = 'Upload failed: {$a}';
+$string['up_retrying'] = 'Connection problem — trying that part again ({$a})…';
+$string['upload_err_noprovider'] = 'VdoCipher is not set up on this site, so the video cannot be uploaded.';
+$string['upload_err_provider'] = 'VdoCipher did not accept the new video: {$a}';
+$string['upload_err_size'] = 'The video must be smaller than {$a}.';
+$string['upload_err_state'] = 'This upload is already complete.';
+$string['upload_err_offset'] = 'A part arrived out of order; continuing from byte {$a}.';
+$string['upload_err_write'] = 'A part of the video could not be saved on the server.';
+$string['upload_err_notfound'] = 'This upload no longer exists. Choose the video again.';
+$string['task_uploadpush'] = 'Send an uploaded lesson video on to VdoCipher';
+$string['task_uploadcleanup'] = 'Delete uploaded lesson videos nobody will use';
+
+// Transcript editor (transcript.php).
+$string['editortitle'] = 'Transcript';
+$string['editorintro'] = 'Every line is shown against its time in the video. Correct any mistake in place, then save. A saved change needs approving again before students see it — "Save and approve" does both.';
+$string['editor_time'] = 'Time';
+$string['editor_text'] = 'Line at';
+$string['editor_filter'] = 'Find a word in the transcript';
+$string['editor_save'] = 'Save';
+$string['editor_saveapprove'] = 'Save and approve';
+$string['editor_saved'] = 'Saved. Approve the transcript when you are happy with it.';
+$string['editor_savedapproved'] = 'Saved and approved — students can use the assistant.';
+$string['editor_empty'] = 'The transcript cannot be empty.';
+$string['editor_back'] = 'Back to the lesson';
+
+// Transcription progress.
 $string['stt_status_pending'] = 'Video received — sending it to be transcribed.';
 $string['stt_status_retrying'] = 'Could not reach the transcription service yet; trying again shortly. ({$a})';
 $string['stt_status_queued'] = 'Waiting to be transcribed — number {$a} in the queue.';

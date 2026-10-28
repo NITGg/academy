@@ -108,5 +108,33 @@ function xmldb_local_nit_ai_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026102800, 'local', 'nit_ai');
     }
 
+    if ($oldversion < 2026102801) {
+
+        // Where the teacher wants the transcript from. Every transcript stored
+        // so far was an uploaded file, so that is what existing rows say.
+        $table = new xmldb_table('local_nit_ai_transcripts');
+        $field = new xmldb_field('source', XMLDB_TYPE_CHAR, '8', null, XMLDB_NOTNULL, null, 'file', 'hasonscreen');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // A transcription can now take its video from a chunked upload rather
+        // than the media file area. The 2026102800 step above may already have
+        // created the table from install.xml with this field in it.
+        $table = new xmldb_table('local_nit_ai_stt');
+        $field = new xmldb_field('uploadid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'enable');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Videos uploaded in chunks to this server, on their way to VdoCipher
+        // and to the transcription service.
+        if (!$dbman->table_exists('local_nit_ai_uploads')) {
+            $dbman->install_one_table_from_xmldb_file(__DIR__ . '/install.xml', 'local_nit_ai_uploads');
+        }
+
+        upgrade_plugin_savepoint(true, 2026102801, 'local', 'nit_ai');
+    }
+
     return true;
 }

@@ -36,4 +36,15 @@ $tasks = [
         'month'     => '*',
         'dayofweek' => '*',
     ],
+    [
+        // Uploads whose form was never saved hold a whole video each; an hourly
+        // sweep is enough to keep them from piling up.
+        'classname' => \local_nit_ai\task\upload_cleanup::class,
+        'blocking'  => 0,
+        'minute'    => 'R',
+        'hour'      => '*',
+        'day'       => '*',
+        'month'     => '*',
+        'dayofweek' => '*',
+    ],
 ];

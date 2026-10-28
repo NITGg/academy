@@ -68,16 +68,28 @@ class client {
         // video is far too large to hold in memory as a request body.
         $path = $file->copy_content_to_temp('local_nit_ai');
         try {
-            $curl = $this->curl(3600);
-            $body = $curl->put(
-                $this->url . '/jobs?name=' . rawurlencode($file->get_filename()),
-                ['file' => $path],
-                ['CURLOPT_USERPWD' => false]
-            );
-            return $this->decode($curl, $body, 201);
+            return $this->submit_path($path, $file->get_filename());
         } finally {
             @unlink($path);
         }
+    }
+
+    /**
+     * Hand a video already sitting on this server's disk to the service.
+     *
+     * @param string $path
+     * @param string $filename shown in the service's job, and the transcript is named after it
+     * @return array the new job: id, status, position
+     * @throws \moodle_exception
+     */
+    public function submit_path(string $path, string $filename): array {
+        $curl = $this->curl(3600);
+        $body = $curl->put(
+            $this->url . '/jobs?name=' . rawurlencode($filename),
+            ['file' => $path],
+            ['CURLOPT_USERPWD' => false]
+        );
+        return $this->decode($curl, $body, 201);
     }
 
     /**

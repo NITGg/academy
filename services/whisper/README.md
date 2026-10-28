@@ -3,10 +3,25 @@
 Turns lesson videos into timed WebVTT transcripts for `local_nit_ai`, on our own
 server: no AI provider, no tokens, and the video never leaves the machine.
 
-A teacher uploads the video in the activity's **AI assistant** section → an adhoc
-task sends it here → this service transcribes it (one video at a time) → the
-`stt_poll` scheduled task collects the `.vtt`, saves it as the activity's
-transcript and notifies the teacher, who reviews and approves it as usual.
+With the AI assistant on and "write it from the video" chosen, the teacher uploads
+the video once, in the activity's **Video** section:
+
+1. `local_nit_ai/js/upload.js` sends it to `local_nit_ai/upload.php` in 16 MB chunks
+   (Cloudflare refuses any request over 100 MB) → `moodledata/local_nit_ai/uploads/`.
+2. `finish` opens the video on VdoCipher and returns its id, which fills the form.
+3. The `upload_push` adhoc task sends the file on to VdoCipher.
+4. Saving the form claims the upload; the `stt_submit` adhoc task sends it here,
+   and this service transcribes it (one video at a time).
+5. The `stt_poll` scheduled task collects the `.vtt`, saves it as the activity's
+   transcript and notifies the teacher, who reads and corrects it on
+   `local_nit_ai/transcript.php` and approves it.
+
+The server copy is deleted once VdoCipher and this service both have it; an upload
+whose form was never saved is deleted after a day (`upload_cleanup`). With the
+assistant off, the video goes straight from the browser to VdoCipher as before.
+
+For a lesson already on VdoCipher, the same section has a "video to transcribe"
+picker, since the video cannot be fetched back from VdoCipher.
 
 ## Model and cost
 
