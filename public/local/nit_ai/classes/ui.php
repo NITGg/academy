@@ -78,11 +78,17 @@ class ui {
      * Either way the result waits for the teacher's review, and once there is
      * one the form says so and links to where it can be read and corrected.
      *
+     * For a File, link or H5P activity (source::GENERIC_MODULES) "written from
+     * the video" means from the video the activity itself carries; the picker
+     * is there for what we cannot fetch — YouTube and other sites.
+     *
      * @param \MoodleQuickForm $mform
      * @param object|null $cm the course module being edited, null while creating
+     * @param string $modname the activity type the form is for
      * @return void
      */
-    public static function add_form_elements(\MoodleQuickForm $mform, ?object $cm = null): void {
+    public static function add_form_elements(\MoodleQuickForm $mform, ?object $cm = null,
+            string $modname = 'vdocipher'): void {
         global $COURSE, $PAGE;
 
         if (self::FORM_HIDDEN) {
@@ -91,6 +97,7 @@ class ui {
 
         $cmid = ($cm && !empty($cm->id)) ? (int) $cm->id : 0;
         $auto = stt\client::is_configured();
+        $generic = in_array($modname, source::GENERIC_MODULES, true);
 
         $mform->addElement('header', 'nitaiheader', get_string('formheader', 'local_nit_ai'));
 
@@ -108,26 +115,33 @@ class ui {
             $mform->addHelpButton('nitai_sourcegroup', 'source', 'local_nit_ai');
             $mform->hideIf('nitai_sourcegroup', 'nitai_enabled', 'notchecked');
 
-            // What "written from the video" means for this form, plus the settings
-            // js/upload.js reads to send the video above through this server.
-            $mform->addElement('static', 'nitai_autohint', '', self::upload_config_html((int) $COURSE->id));
+            // What "written from the video" means for this form. On a VdoCipher
+            // activity it also carries the settings js/upload.js reads to send the
+            // video in the section above through this server.
+            $hint = $generic
+                ? \html_writer::tag('p', get_string('autohint_' . $modname, 'local_nit_ai'), ['class' => 'text-muted mb-0'])
+                : self::upload_config_html((int) $COURSE->id);
+            $mform->addElement('static', 'nitai_autohint', '', $hint);
             $mform->hideIf('nitai_autohint', 'nitai_enabled', 'notchecked');
             $mform->hideIf('nitai_autohint', 'nitai_source', 'neq', api::SOURCE_AUTO);
 
-            $mform->addElement('hidden', 'nitai_uploadtoken', '');
-            $mform->setType('nitai_uploadtoken', PARAM_ALPHANUM);
+            if (!$generic) {
+                $mform->addElement('hidden', 'nitai_uploadtoken', '');
+                $mform->setType('nitai_uploadtoken', PARAM_ALPHANUM);
+                $PAGE->requires->js(new \moodle_url('/local/nit_ai/js/upload.js'));
+            }
 
-            // A lesson whose video is already on the provider: we cannot fetch it
-            // back from there, so it has to be handed over once more to be heard.
-            if ($cmid) {
-                $mform->addElement('filemanager', 'nitai_media', get_string('sttmedia', 'local_nit_ai'), null,
+            // The video, handed over just to be heard, where we cannot take it from
+            // the activity: a lesson already on VdoCipher, a YouTube link, an H5P
+            // that plays from YouTube. A File activity's video is always ours.
+            if (($cmid && !$generic) || in_array($modname, ['url', 'h5pactivity'], true)) {
+                $label = $generic ? 'sttmedia_external' : 'sttmedia';
+                $mform->addElement('filemanager', 'nitai_media', get_string($label, 'local_nit_ai'), null,
                     self::media_filemanager_options());
-                $mform->addHelpButton('nitai_media', 'sttmedia', 'local_nit_ai');
+                $mform->addHelpButton('nitai_media', $label, 'local_nit_ai');
                 $mform->hideIf('nitai_media', 'nitai_enabled', 'notchecked');
                 $mform->hideIf('nitai_media', 'nitai_source', 'neq', api::SOURCE_AUTO);
             }
-
-            $PAGE->requires->js(new \moodle_url('/local/nit_ai/js/upload.js'));
         } else {
             $mform->addElement('hidden', 'nitai_source', api::SOURCE_FILE);
             $mform->setType('nitai_source', PARAM_ALPHA);
@@ -297,9 +311,11 @@ class ui {
      * @param array $defaults form defaults, by reference
      * @param \context|null $context module context, null while creating
      * @param int $cmid 0 while creating
+     * @param string $modname the activity type the form is for
      * @return void
      */
-    public static function prepare_form_defaults(array &$defaults, ?\context $context, int $cmid): void {
+    public static function prepare_form_defaults(array &$defaults, ?\context $context, int $cmid,
+            string $modname = 'vdocipher'): void {
         if (self::FORM_HIDDEN) {
             return; // No elements to fill, and no reason to copy the file into a draft area.
         }
@@ -326,12 +342,14 @@ class ui {
         $record = $cmid ? api::get($cmid) : null;
         $auto = stt\client::is_configured();
 
-        // A new activity starts with the assistant on and "written from the video"
-        // whenever that is on offer. The Video section sits above this one, and a
-        // teacher who picks the file before scrolling down would otherwise send it
-        // straight to the provider, with nothing left here to transcribe. Students
-        // still see nothing until the transcript is approved.
-        $defaults['nitai_enabled'] = $record ? (int) $record->enabled : (int) $auto;
+        // A new VdoCipher activity starts with the assistant on and "written from
+        // the video" whenever that is on offer. The Video section sits above this
+        // one, and a teacher who picks the file before scrolling down would
+        // otherwise send it straight to the provider, with nothing left here to
+        // transcribe. Students still see nothing until the transcript is approved.
+        // A File, link or H5P stays off until asked: most of those are not videos.
+        $defaults['nitai_enabled'] = $record ? (int) $record->enabled
+            : (int) ($auto && !in_array($modname, source::GENERIC_MODULES, true));
         $defaults['nitai_onscreen'] = $record ? (int) $record->hasonscreen : 0;
         $defaults['nitai_source'] = $record ? $record->source : ($auto ? api::SOURCE_AUTO : api::SOURCE_FILE);
         $defaults['nitai_uploadtoken'] = '';

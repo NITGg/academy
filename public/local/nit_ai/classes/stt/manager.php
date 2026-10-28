@@ -109,6 +109,37 @@ class manager {
     }
 
     /**
+     * Start transcribing the video the activity itself carries — a File
+     * activity's video, a link straight to a video file, the video inside an H5P
+     * package — so the teacher uploads nothing extra.
+     *
+     * The video is fetched in the task, not here: a link has to be downloaded and
+     * a package unpacked, and neither belongs in the request that saves the form.
+     * When the activity turns out to have nothing we can take (a YouTube link, a
+     * PDF), the task says so on the review panel.
+     *
+     * @param int $cmid
+     * @param int $courseid
+     * @param bool $enable
+     * @return void
+     */
+    public static function queue_from_activity(int $cmid, int $courseid, bool $enable): void {
+        self::forget($cmid);
+        self::queue($cmid, $courseid, 'transcript', $enable, 0, true);
+    }
+
+    /**
+     * Is a transcription for this activity waiting or under way?
+     *
+     * @param int $cmid
+     * @return bool
+     */
+    public static function in_flight(int $cmid): bool {
+        $row = self::get($cmid);
+        return $row && in_array($row->status, ['pending', 'queued', 'running'], true);
+    }
+
+    /**
      * Write the request row and queue the task that sends the video.
      *
      * @param int $cmid
@@ -118,7 +149,8 @@ class manager {
      * @param int $uploadid 0 when the video is in the media file area
      * @return void
      */
-    protected static function queue(int $cmid, int $courseid, string $filename, bool $enable, int $uploadid): void {
+    protected static function queue(int $cmid, int $courseid, string $filename, bool $enable, int $uploadid,
+            bool $fromactivity = false): void {
         global $DB, $USER;
 
         $now = time();
@@ -129,6 +161,7 @@ class manager {
             'filename'     => \core_text::substr($filename, 0, 255),
             'enable'       => (int) $enable,
             'uploadid'     => $uploadid,
+            'fromactivity' => (int) $fromactivity,
             'jobid'        => '',
             'status'       => 'pending',
             'progress'     => 0,
@@ -160,22 +193,29 @@ class manager {
 
         $context = \context_module::instance($cmid);
         $upload = $row->uploadid ? $DB->get_record(\local_nit_ai\upload\manager::TABLE, ['id' => $row->uploadid]) : null;
-        $uploadpath = $upload ? \local_nit_ai\upload\manager::path($upload) : '';
-        $file = $upload ? null : self::stored_media($context);
 
-        if ($upload ? !is_readable($uploadpath) : !$file) {
-            self::update($row, ['status' => 'failed', 'error' => get_string('stt_err_nomedia', 'local_nit_ai')]);
+        // Where the video is: a chunked upload, the activity's own media, or the
+        // "video to transcribe" picker's file area.
+        try {
+            $media = self::locate_media($row, $context, $upload);
+        } catch (\moodle_exception $e) {
+            self::fail($row, $e->getMessage());
             return;
         }
 
         try {
             $client = new client();
-            $job = $upload ? $client->submit_path($uploadpath, $upload->filename) : $client->submit($file);
+            $job = isset($media['file']) ? $client->submit($media['file'])
+                : $client->submit_path($media['path'], $media['filename']);
         } catch (\Throwable $e) {
             // Shown on the panel while the task keeps retrying, so a service
             // that is down reads as "down", not as a queue that never moves.
             self::update($row, ['error' => $e->getMessage()]);
             throw $e;
+        } finally {
+            if (!empty($media['temporary'])) {
+                @unlink($media['path']);
+            }
         }
 
         self::update($row, [
@@ -188,9 +228,82 @@ class manager {
         if ($upload) {
             // The service has its copy; the file goes once the provider has one too.
             \local_nit_ai\upload\manager::release((int) $upload->id);
-        } else {
+        } else if (!$row->fromactivity) {
             get_file_storage()->delete_area_files($context->id, 'local_nit_ai', self::FILEAREA);
         }
+        // The activity's own media is the activity's: it stays exactly where it is.
+    }
+
+    /**
+     * Find the video a request is for.
+     *
+     * @param \stdClass $row
+     * @param \context $context
+     * @param \stdClass|null $upload the chunked upload, when the row names one
+     * @return array ['file' => \stored_file] or ['path' => string, 'filename' => string, 'temporary' => bool]
+     * @throws \moodle_exception saying, for the teacher, why there is nothing to send
+     */
+    protected static function locate_media(\stdClass $row, \context $context, ?\stdClass $upload): array {
+        if ($upload) {
+            $path = \local_nit_ai\upload\manager::path($upload);
+            if (!is_readable($path)) {
+                throw new \moodle_exception('stt_err_nomedia', 'local_nit_ai');
+            }
+            return ['path' => $path, 'filename' => $upload->filename, 'temporary' => false];
+        }
+
+        if (!$row->fromactivity) {
+            $file = self::stored_media($context);
+            if (!$file) {
+                throw new \moodle_exception('stt_err_nomedia', 'local_nit_ai');
+            }
+            return ['file' => $file];
+        }
+
+        $cm = get_coursemodule_from_id('', (int) $row->cmid, 0, false, MUST_EXIST);
+        $media = \local_nit_ai\source::media($cm);
+
+        if (isset($media['error'])) {
+            throw new \moodle_exception('stt_err_plain', 'local_nit_ai', '', $media['error']);
+        }
+        if (isset($media['file'])) {
+            return ['file' => $media['file']];
+        }
+        if (isset($media['h5p'])) {
+            return \local_nit_ai\source::h5p_extract_media($media['h5p']) + ['temporary' => true];
+        }
+        return self::download($media['url']);
+    }
+
+    /**
+     * Fetch a video a link points straight at.
+     *
+     * Through Moodle's curl with its security checks on: the address came from a
+     * teacher, and must not be able to reach this server's private network.
+     *
+     * @param string $url
+     * @return array ['path' => string, 'filename' => string, 'temporary' => true]
+     * @throws \moodle_exception
+     */
+    protected static function download(string $url): array {
+        global $CFG;
+        require_once($CFG->libdir . '/filelib.php');
+
+        $filename = clean_filename(basename((string) parse_url($url, PHP_URL_PATH))) ?: 'video';
+        $path = make_request_directory() . '/' . $filename;
+
+        $curl = new \curl();
+        $curl->setopt(['CURLOPT_TIMEOUT' => 3600, 'CURLOPT_CONNECTTIMEOUT' => 20, 'CURLOPT_FOLLOWLOCATION' => true,
+            'CURLOPT_MAXFILESIZE' => \local_nit_ai\upload\manager::MAXSIZE]);
+        $curl->download_one($url, null, ['filepath' => $path]);
+        $code = (int) ($curl->get_info()['http_code'] ?? 0);
+
+        if ($curl->get_errno() || $code < 200 || $code >= 300 || !filesize($path)) {
+            @unlink($path);
+            throw new \moodle_exception('stt_err_download', 'local_nit_ai', '',
+                $curl->get_errno() ? $curl->error : 'HTTP ' . $code);
+        }
+        return ['path' => $path, 'filename' => $filename, 'temporary' => true];
     }
 
     /**

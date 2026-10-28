@@ -159,6 +159,21 @@ $string['quizgen_span'] = 'Read from a transcript of {$a->parts} parts ending at
 $string['sttmedia'] = 'Video to transcribe (lesson already uploaded)';
 $string['sttmedia_help'] = 'For a lesson whose video is already on VdoCipher: we cannot fetch it back from there, so upload the same video (or just its audio) here to have the transcript written from it. Not needed when you upload the video in the Video section above with this option on. The file is deleted once it has been transcribed.';
 
+// File, URL and H5P activities.
+$string['autohint_resource'] = 'The transcript is written from this activity\'s own video or audio file — nothing else to upload. You will be notified when it is ready to review.';
+$string['autohint_url'] = 'When the link points straight at a video file (ending in .mp4, for example), the transcript is written from it automatically. For YouTube and other video sites we cannot fetch the video: upload it (or just its audio) below.';
+$string['autohint_h5pactivity'] = 'The transcript is written from the video inside the H5P package — nothing else to upload. If the H5P plays its video from YouTube, upload the video (or just its audio) below.';
+$string['sttmedia_external'] = 'Video to transcribe (YouTube and other sites)';
+$string['sttmedia_external_help'] = 'Only needed when we cannot take the video from the activity itself: a YouTube or other video-site link, or an H5P that plays its video from YouTube. Upload the same video, or just its audio. The file is deleted once it has been transcribed.';
+$string['check_notmedia'] = 'This activity\'s file is not a video or audio file, so there is nothing for the assistant to follow.';
+$string['check_display'] = 'This activity does not show its video on its own page (Appearance > Display is not "Embed"), so there is no player for the assistant to sit beside. Set Display to Embed.';
+$string['stt_err_notmedia'] = 'The activity\'s file is not a video or audio file.';
+$string['stt_err_urlneedsupload'] = 'This link is not a video file we can fetch (YouTube and other video sites cannot be downloaded). Upload the video in the activity settings, under "Video to transcribe".';
+$string['stt_err_h5pnovideo'] = 'There is no video inside this H5P package.';
+$string['stt_err_h5premote'] = 'This H5P plays its video from YouTube or another site, which we cannot fetch. Upload the video in the activity settings, under "Video to transcribe".';
+$string['stt_err_download'] = 'The video could not be downloaded from the link: {$a}';
+$string['stt_err_plain'] = '{$a}';
+
 // Where the transcript comes from (activity form).
 $string['source'] = 'Transcript';
 $string['source_help'] = 'Written from the video: the video you upload in the Video section above goes through this server, and a timed transcript is written from it — no AI provider and no cost per video. It takes roughly as long as the video runs; you get a notification when it is ready, and you can read and correct it before approving it.

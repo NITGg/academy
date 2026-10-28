@@ -149,6 +149,8 @@ class apple_token {
         $known = is_array($entry) && in_array($kid, array_column($entry['jwks']['keys'], 'kid'), true);
 
         if ($age >= self::JWKS_MAXAGE || (!$known && $age >= self::JWKS_COOLDOWN)) {
+            global $CFG;
+            require_once($CFG->libdir . '/filelib.php'); // Moodle's \curl, whatever page called us.
             $curl = new \curl();
             $curl->setopt(['CURLOPT_TIMEOUT' => 10, 'CURLOPT_CONNECTTIMEOUT' => 5]);
             $jwks = json_decode((string) $curl->get(self::JWKS_URL), true);

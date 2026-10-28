@@ -15,27 +15,19 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * "Continue with Apple" on the log-in / sign-up pages: send the visitor to Apple.
+ * Hook callbacks for local_nit_ai.
  *
- * @package    local_appleauth
- * @copyright  2026 NIT Academy
+ * @package    local_nit_ai
+ * @copyright  2026 NIT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use local_appleauth\web;
+defined('MOODLE_INTERNAL') || die();
 
-require(__DIR__ . '/../../config.php');
-
-$PAGE->set_url(new moodle_url('/local/appleauth/web_login.php'));
-$PAGE->set_context(context_system::instance());
-
-$wantsurl = (string) ($SESSION->wantsurl ?? '');
-
-if (isloggedin() && !isguestuser()) {
-    redirect($wantsurl !== '' ? $wantsurl : new moodle_url('/my/'));
-}
-if (!web::enabled()) {
-    redirect(new moodle_url('/login/index.php'));
-}
-
-redirect(web::authorize_url($wantsurl));
+$callbacks = [
+    [
+        // The assistant on core File, URL and H5P activity pages.
+        'hook' => \core\hook\output\before_footer_html_generation::class,
+        'callback' => [\local_nit_ai\hook_callbacks::class, 'before_footer'],
+    ],
+];

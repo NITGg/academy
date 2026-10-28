@@ -164,6 +164,7 @@ class api {
         $context = \context_module::instance((int) $cm->id);
         $describe = source::describe($cm);
         $cmid = (int) $cm->id;
+        $before = self::get($cmid);
         $courseid = (int) ($data->course ?? 0);
         $enabled = !empty($data->nitai_enabled);
 
@@ -206,8 +207,20 @@ class api {
 
         if ($upload) {
             stt\manager::queue_from_upload($cmid, $courseid, $upload, $enabled);
-        } else {
-            stt\manager::queue_from_form($context, $cmid, $courseid, (int) ($data->nitai_media ?? 0), $enabled);
+            return;
+        }
+        if (stt\manager::queue_from_form($context, $cmid, $courseid, (int) ($data->nitai_media ?? 0), $enabled)) {
+            return;
+        }
+
+        // A File, link or H5P activity carries its own video. Transcribe it when
+        // there is no transcript of it yet — none at all, or one of a video that
+        // has since been replaced — and nothing is already on its way; an ordinary
+        // re-save must not start the same transcription over.
+        if ($enabled && in_array($cm->modname, source::GENERIC_MODULES, true) && !stt\manager::in_flight($cmid)) {
+            if (!$before || $before->source !== self::SOURCE_AUTO || self::is_stale($before, $describe['ref'])) {
+                stt\manager::queue_from_activity($cmid, $courseid, $enabled);
+            }
         }
     }
 
@@ -310,6 +323,13 @@ class api {
 
         if (!$record->segmentcount && trim((string) $record->plaintext) === '') {
             $problems[] = get_string('check_empty', 'local_nit_ai');
+        }
+
+        // What only this kind of activity can get wrong: a File that is not a
+        // video, a link that opens in a new window and leaves no player here.
+        $cm = get_coursemodule_from_id('', $cmid, 0, false, IGNORE_MISSING);
+        if ($cm) {
+            $problems = array_merge($problems, source::problems($cm));
         }
 
         // Everything below is switched off somewhere else on the site. Each one

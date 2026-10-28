@@ -136,5 +136,19 @@ function xmldb_local_nit_ai_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2026102801, 'local', 'nit_ai');
     }
 
+    if ($oldversion < 2026102802) {
+
+        // File, URL and H5P activities: the video to transcribe can be the
+        // activity's own, fetched when the task runs. Earlier steps may already
+        // have built the table from install.xml with this field in it.
+        $table = new xmldb_table('local_nit_ai_stt');
+        $field = new xmldb_field('fromactivity', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'uploadid');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026102802, 'local', 'nit_ai');
+    }
+
     return true;
 }
