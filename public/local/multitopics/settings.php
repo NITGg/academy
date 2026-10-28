@@ -18,9 +18,7 @@
  * Mobile app launch settings — the values served by getsettings.php.
  *
  * Every value here is published, unauthenticated, to anyone who requests
- * /local/multitopics/getsettings.php. Nothing secret belongs on this page;
- * the token in particular must be the read-only guest-browsing token created
- * by cli/app_guest_token.php, never an administrator's.
+ * /local/multitopics/getsettings.php. Nothing secret belongs on this page.
  *
  * @package    local_multitopics
  * @copyright  2026 NIT
@@ -37,14 +35,14 @@ if ($hassiteconfig) {
         get_string('heading_access', 'local_multitopics'),
         get_string('heading_access_desc', 'local_multitopics')));
 
-    // Published as-is. PARAM_ALPHANUM because a Moodle token is a 32-char hex string.
-    $settings->add(new admin_setting_configtext('local_multitopics/admin_token',
-        get_string('admin_token', 'local_multitopics'),
-        get_string('admin_token_desc', 'local_multitopics'), '', PARAM_ALPHANUM, 60));
-
     $settings->add(new admin_setting_configtext('local_multitopics/google_client_id',
         get_string('google_client_id', 'local_multitopics'),
-        get_string('google_client_id_desc', 'local_multitopics'), '', PARAM_RAW_TRIMMED, 80));
+        get_string('google_client_id_desc', 'local_multitopics'),
+        '31169484251-lkhbei8fv9eq6tc03u498569l9jobj9r.apps.googleusercontent.com', PARAM_RAW_TRIMMED, 80));
+
+    $settings->add(new admin_setting_configcheckbox('local_multitopics/app_in_review',
+        get_string('app_in_review', 'local_multitopics'),
+        get_string('app_in_review_desc', 'local_multitopics'), 0));
 
     $settings->add(new admin_setting_configtext('local_multitopics/server_timeout_duration',
         get_string('server_timeout_duration', 'local_multitopics'),

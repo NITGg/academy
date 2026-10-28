@@ -34,8 +34,9 @@
  *     which market a guest is priced in, so a cached body would hand every
  *     visitor the first caller's country.
  *
- * Auth: none. This is public, so the token it publishes must be the dedicated
- * read-only guest-browsing token (see cli/app_guest_token.php).
+ * Auth: none. This is public, so it publishes no web-service token: the app
+ * keeps its built-in guest token until a read-only one is agreed with the app
+ * team (see cli/app_guest_token.php).
  *
  * @package    local_multitopics
  * @copyright  2026 NIT
@@ -68,8 +69,10 @@ $put = static function (string $key, $value) use (&$data): void {
 };
 
 // ── Access ─────────────────────────────────────────────────────────────────
-$put('admin_token', preg_match('/^[a-f0-9]{32}$/i', $cfg->admin_token ?? '') ? $cfg->admin_token : '');
 $put('google_client_id', $cfg->google_client_id ?? '');
+
+// Always sent: "1" while a build is in App Store / Play review, else "0".
+$data['app_in_review'] = empty($cfg->app_in_review) ? '0' : '1';
 
 $timeout = (int) ($cfg->server_timeout_duration ?? 0);
 $put('server_timeout_duration', $timeout > 0 ? (string) $timeout : '');

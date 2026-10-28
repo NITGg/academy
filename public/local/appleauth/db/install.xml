@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/appleauth/db" VERSION="20261028" COMMENT="XMLDB file for Moodle local/appleauth"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="local_appleauth_links" COMMENT="The Apple subject (sub) each Moodle account signs in with. Apple sends the e-mail only on some logins, so the account is found by sub first.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="sub" TYPE="char" LENGTH="191" NOTNULL="true" SEQUENCE="false" COMMENT="Apple's stable user identifier for this app team"/>
+        <FIELD NAME="email" TYPE="char" LENGTH="254" NOTNULL="false" SEQUENCE="false" COMMENT="Last e-mail Apple sent (may be a private-relay address)"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="sub" UNIQUE="true" FIELDS="sub"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

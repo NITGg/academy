@@ -234,7 +234,8 @@ if ($idtoken === '') {
 }
 
 // Configured, accepted audiences (client IDs).
-$allowedaud = array_values(array_filter(array_map('trim', explode(',', (string)$config->clientids))));
+// One per line or comma-separated: Web (Android) and iOS issue different `aud`s.
+$allowedaud = array_values(array_filter(preg_split('/[\s,]+/', (string)$config->clientids)));
 if (empty($allowedaud)) {
     local_googleauth_fail('no_clientids_configured', 503);
 }
