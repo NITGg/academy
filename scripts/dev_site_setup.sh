@@ -8,10 +8,9 @@
 #   git clone -b moodle-new-version https://github.com/NITGg/academy.git /var/www/html/eaac-dev
 #   bash /var/www/html/eaac-dev/scripts/dev_site_setup.sh
 #
-# The copy is made safe before it can run a single cron job: no e-mail, no mobile
-# push and no real payment keys. VdoCipher is left to the site's own settings
-# (Site administration > Plugins > Local plugins > VdoCipher): the copy starts
-# with the client's key, so point it at a development account there.
+# The copy starts with the client's settings — e-mail, mobile push, payment and
+# VdoCipher keys — and the cron runs, so switch off or replace what must not reach
+# real students, payments or the client's videos in Site administration.
 
 set -euo pipefail
 
@@ -158,8 +157,9 @@ docker exec moodle_db_new sh -c 'exec mariadb-dump -uroot -p"$MARIADB_ROOT_PASSW
     | docker exec -i eaac_dev_db sh -c 'exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" moodle'
 
 echo "== 5/7 config.php"
-# The client's config with three changes: its own database, its own address,
-# and the safety switches — written before the setup.php line so they win.
+# The client's config with two changes: its own database and its own address.
+# Everything else — e-mail, push, payment and VdoCipher keys — stays in the
+# site's own settings, for the team to change from Site administration.
 cp "$PROD/config.php" config.php
 sed -i -E \
     -e "s/'moodle_db_new'/'eaac_dev_db'/" \
@@ -167,23 +167,17 @@ sed -i -E \
     -e "s/^(\\\$CFG->dbuser\s*=\s*)'[^']*'/\1'moodle'/" \
     -e "s/^(\\\$CFG->dbpass\s*=\s*)'[^']*'/\1'$DBPASS'/" \
     config.php
-sed -i "/require_once(__DIR__ . '\/lib\/setup.php');/i \\
-// ===== Development copy: nothing here may reach real people or real money. =====\\
-\$CFG->noemailever = true;                 // No e-mail at all.\\
-\$CFG->airnotifieraccesskey = '';          // No push notifications to the mobile app.\\
-\$CFG->forced_plugin_settings = [\\
-    'paymentprovider_kashier' => ['api_key' => '', 'secret_key' => ''],\\
-    'paymentprovider_fawaterk' => ['vendor_key' => '', 'provider_key' => '', 'client_secret' => ''],\\
-    'local_nit_ai' => ['stt_url' => 'http://whisper:9000', 'stt_token' => '$WHISPER_TOKEN'],\\
-];\\
-" config.php
 
-grep -q "eaac_dev_db" config.php && grep -q "$WWWROOT" config.php && grep -q "noemailever" config.php \
+grep -q "eaac_dev_db" config.php && grep -q "$WWWROOT" config.php \
     || { echo "config.php was not rewritten as expected — check it before going on." >&2; exit 1; }
 
 echo "== 6/7 Start the site and upgrade it to the development code"
 docker compose up -d --build
 docker exec eaac_dev_app php admin/cli/upgrade.php --non-interactive
+# Point the AI assistant at this copy's own transcription container. Ordinary
+# settings: they can be changed later from Site administration.
+docker exec eaac_dev_app php admin/cli/cfg.php --component=local_nit_ai --name=stt_url --set=http://whisper:9000
+docker exec eaac_dev_app php admin/cli/cfg.php --component=local_nit_ai --name=stt_token --set="$WHISPER_TOKEN"
 docker exec eaac_dev_app php admin/cli/purge_caches.php
 
 echo "== 7/7 Apache: serve $WWWROOT"
