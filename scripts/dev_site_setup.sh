@@ -9,9 +9,9 @@
 #   bash /var/www/html/eaac-dev/scripts/dev_site_setup.sh
 #
 # The copy is made safe before it can run a single cron job: no e-mail, no mobile
-# push, no real payment keys and no VdoCipher key — the client's VdoCipher account
-# is the one that holds real lessons, and deleting an activity here would delete
-# its video there. Put a separate development VdoCipher key in config.php later.
+# push and no real payment keys. VdoCipher is left to the site's own settings
+# (Site administration > Plugins > Local plugins > VdoCipher): the copy starts
+# with the client's key, so point it at a development account there.
 
 set -euo pipefail
 
@@ -172,9 +172,6 @@ sed -i "/require_once(__DIR__ . '\/lib\/setup.php');/i \\
 \$CFG->noemailever = true;                 // No e-mail at all.\\
 \$CFG->airnotifieraccesskey = '';          // No push notifications to the mobile app.\\
 \$CFG->forced_plugin_settings = [\\
-    // The client's VdoCipher account: deleting an activity here would delete the real video.\\
-    // Replace with a development account's key to play and upload videos here.\\
-    'local_vdocipher' => ['apisecret' => ''],\\
     'paymentprovider_kashier' => ['api_key' => '', 'secret_key' => ''],\\
     'paymentprovider_fawaterk' => ['vendor_key' => '', 'provider_key' => '', 'client_secret' => ''],\\
     'local_nit_ai' => ['stt_url' => 'http://whisper:9000', 'stt_token' => '$WHISPER_TOKEN'],\\
