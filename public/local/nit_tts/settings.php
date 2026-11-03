@@ -37,13 +37,14 @@ if ($hassiteconfig) {
     ));
 
     // Gemini ships its TTS models as previews and renames them on release, so the
-    // model is a setting rather than a constant.
+    // model is a setting rather than a constant. Names carry dots (gemini-3.8-...),
+    // which PARAM_ALPHANUMEXT would reject.
     $settings->add(new admin_setting_configtext(
         'local_nit_tts/model',
         get_string('setting_model', 'local_nit_tts'),
         get_string('setting_model_desc', 'local_nit_tts'),
         'gemini-2.5-flash-preview-tts',
-        PARAM_ALPHANUMEXT
+        '/^[a-z0-9][a-z0-9.\-]*$/'
     ));
 
     $ADMIN->add('localplugins', new admin_externalpage(
