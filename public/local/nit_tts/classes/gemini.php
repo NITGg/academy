@@ -57,7 +57,7 @@ class gemini {
      * @throws \moodle_exception when no key is set or Gemini refuses
      */
     public static function synthesize(string $text, string $voice, string $style = ''): string {
-        $apikey = trim((string) get_config('local_nit_tts', 'apikey'));
+        $apikey = self::apikey();
         if ($apikey === '') {
             throw new \moodle_exception('err_nokey', 'local_nit_tts');
         }
@@ -75,6 +75,8 @@ class gemini {
             ],
         ];
 
+        global $CFG;
+        require_once($CFG->libdir . '/filelib.php');
         $curl = new \curl();
         $curl->setHeader(['Content-Type: application/json', 'x-goog-api-key: ' . $apikey]);
         $curl->setopt(['CURLOPT_TIMEOUT' => 180, 'CURLOPT_CONNECTTIMEOUT' => 15]);
@@ -94,6 +96,31 @@ class gemini {
             throw new \moodle_exception('err_api', 'local_nit_tts', '', $reason);
         }
         return self::wav($pcm);
+    }
+
+    /**
+     * The Gemini key to use.
+     *
+     * Our own setting wins; otherwise the key of the first enabled Gemini provider
+     * under Site administration > AI providers, so the site keeps one key in one place.
+     *
+     * @return string empty when neither is set
+     */
+    public static function apikey(): string {
+        $apikey = trim((string) get_config('local_nit_tts', 'apikey'));
+        if ($apikey !== '') {
+            return $apikey;
+        }
+        $providers = \core\di::get(\core_ai\manager::class)->get_provider_records(
+            ['provider' => \aiprovider_gemini\provider::class, 'enabled' => 1]
+        );
+        foreach ($providers as $record) {
+            $config = json_decode($record->config ?? '', true);
+            if (!empty($config['apikey'])) {
+                return trim($config['apikey']);
+            }
+        }
+        return '';
     }
 
     /**

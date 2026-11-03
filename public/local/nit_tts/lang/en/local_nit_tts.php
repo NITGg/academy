@@ -30,7 +30,7 @@ $string['privacy:metadata'] = 'The text-to-speech page stores no personal data. 
 
 // Settings.
 $string['setting_apikey'] = 'Gemini API key';
-$string['setting_apikey_desc'] = 'Key from Google AI Studio used to call the Gemini text-to-speech model.';
+$string['setting_apikey_desc'] = 'Key from Google AI Studio used to call the Gemini text-to-speech model. Leave empty to use the key of the Gemini provider under Site administration > AI > AI providers.';
 $string['setting_model'] = 'Gemini TTS model';
 $string['setting_model_desc'] = 'Name of the Gemini model that speaks the text, e.g. gemini-2.5-flash-preview-tts or gemini-2.5-pro-preview-tts.';
 

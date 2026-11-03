@@ -47,7 +47,7 @@ if ($data = $form->get_data()) {
 
 echo $OUTPUT->header();
 
-if (!get_config('local_nit_tts', 'apikey')) {
+if (\local_nit_tts\gemini::apikey() === '') {
     $settingsurl = new moodle_url('/admin/settings.php', ['section' => 'local_nit_tts']);
     echo $OUTPUT->notification(get_string('err_nokey_link', 'local_nit_tts', $settingsurl->out()), 'warning');
 }
