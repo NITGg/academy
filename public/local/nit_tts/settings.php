@@ -47,6 +47,13 @@ if ($hassiteconfig) {
         '/^[a-z0-9][a-z0-9.\-]*$/'
     ));
 
+    $settings->add(new admin_setting_configcheckbox(
+        'local_nit_tts/public',
+        get_string('setting_public', 'local_nit_tts'),
+        get_string('setting_public_desc', 'local_nit_tts'),
+        0
+    ));
+
     $ADMIN->add('localplugins', new admin_externalpage(
         'local_nit_tts_page',
         get_string('pluginname', 'local_nit_tts'),

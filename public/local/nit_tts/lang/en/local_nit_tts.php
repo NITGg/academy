@@ -33,6 +33,8 @@ $string['setting_apikey'] = 'Gemini API key';
 $string['setting_apikey_desc'] = 'Key from Google AI Studio used to call the Gemini text-to-speech model. Leave empty to use the key of the Gemini provider under Site administration > AI > AI providers.';
 $string['setting_model'] = 'Gemini TTS model';
 $string['setting_model_desc'] = 'Name of the Gemini model that speaks the text, e.g. gemini-3.8-flash-tts, gemini-3.8-flash-lite-tts or gemini-2.5-flash-preview-tts. Each model has its own daily quota on the free tier.';
+$string['setting_public'] = 'Open to everyone';
+$string['setting_public_desc'] = 'Let anyone use the page at /local/nit_tts/index.php, including guests and visitors who are not logged in. Every conversion uses the site\'s Gemini quota. Untick to make it an admin-only page again.';
 
 // Page.
 $string['text'] = 'Text';

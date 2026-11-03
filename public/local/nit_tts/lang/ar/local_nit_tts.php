@@ -33,6 +33,8 @@ $string['setting_apikey'] = 'مفتاح Gemini API';
 $string['setting_apikey_desc'] = 'المفتاح من Google AI Studio المستخدم لاستدعاء نموذج تحويل النص إلى صوت في Gemini. اتركه فارغاً لاستخدام مفتاح مزوّد Gemini الموجود في إدارة الموقع > الذكاء الاصطناعي > مزوّدو الذكاء الاصطناعي.';
 $string['setting_model'] = 'نموذج Gemini للصوت';
 $string['setting_model_desc'] = 'اسم نموذج Gemini الذي ينطق النص، مثل gemini-3.8-flash-tts أو gemini-3.8-flash-lite-tts أو gemini-2.5-flash-preview-tts. لكل نموذج حد يومي مستقل في الخطة المجانية.';
+$string['setting_public'] = 'متاحة للجميع';
+$string['setting_public_desc'] = 'السماح لأي شخص باستخدام الصفحة /local/nit_tts/index.php، بما في ذلك الضيوف والزوار غير المسجلين. كل تحويل يستهلك من حصة Gemini الخاصة بالموقع. ألغِ التحديد لتعود الصفحة للأدمن فقط.';
 
 // Page.
 $string['text'] = 'النص';

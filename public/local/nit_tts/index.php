@@ -28,7 +28,16 @@
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 
-admin_externalpage_setup('local_nit_tts_page');
+// While testing the page can be opened to everyone, guests and visitors who are
+// not logged in included. Off, it is an ordinary admin page again.
+if (get_config('local_nit_tts', 'public')) {
+    $PAGE->set_context(context_system::instance());
+    $PAGE->set_url(new moodle_url('/local/nit_tts/index.php'));
+    $PAGE->set_pagelayout('standard');
+    $PAGE->set_title(get_string('pluginname', 'local_nit_tts'));
+} else {
+    admin_externalpage_setup('local_nit_tts_page');
+}
 
 $PAGE->set_heading(get_string('pluginname', 'local_nit_tts'));
 
@@ -47,7 +56,7 @@ if ($data = $form->get_data()) {
 
 echo $OUTPUT->header();
 
-if (\local_nit_tts\gemini::apikey() === '') {
+if (\local_nit_tts\gemini::apikey() === '' && has_capability('moodle/site:config', context_system::instance())) {
     $settingsurl = new moodle_url('/admin/settings.php', ['section' => 'local_nit_tts']);
     echo $OUTPUT->notification(get_string('err_nokey_link', 'local_nit_tts', $settingsurl->out()), 'warning');
 }
