@@ -81,6 +81,10 @@ $service = $DB->get_record('external_services', ['id' => $token_record->external
 if (!$service || empty($service->enabled)) {
     api_error('invalidtoken', 'Invalid token', 401);
 }
+// The public guest-browsing token (published by getsettings.php) is not a member.
+if (class_exists('\local_academy\token_auth') && \local_academy\token_auth::is_public_token($token_record, $service)) {
+    api_error('nopermissions', 'Sign in required', 403);
+}
 
 // Load user from token and enforce a live, confirmed, non-suspended local account.
 $USER = $DB->get_record('user', ['id' => $token_record->userid, 'deleted' => 0]);

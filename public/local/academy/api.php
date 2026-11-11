@@ -104,9 +104,18 @@ if (empty($token)) {
 // returns to the login screen with "your session has expired". Same story as the
 // errorcode:"invalidtoken" envelope /webservice/rest/server.php returns — this
 // endpoint just speaks HTTP as well, because it is not a Moodle WS endpoint.
-$USER = \local_academy\token_auth::validate($token);
+$USER = \local_academy\token_auth::validate($token, true);
 if (!$USER) {
     academy_fail('invalidtoken', get_string('err_invalidtoken', 'local_academy'), 401);
+}
+// The public guest-browsing token is handed to anyone by getsettings.php, so it
+// may only reach the pre-login calls and the public directory - never anything
+// that acts as, or reads/writes for, the account behind it. Not 401: the token
+// is fine, it is just not a member's.
+$publicfunctions = ['login', 'request_password_otp', 'verify_password_otp', 'reset_password',
+    'is_course_free', 'browse_teachers', 'get_teacher', 'get_teacher_courses'];
+if (!in_array($function, $publicfunctions, true) && \local_academy\token_auth::is_public($token)) {
+    academy_fail('authrequired', get_string('err_authrequired', 'local_academy'));
 }
 \core\session\manager::set_user($USER);
 $userid = (int) $USER->id;
